@@ -1,0 +1,446 @@
+{
+  "by_split": {
+    "dev": {
+      "answerable": 6,
+      "cases": 8,
+      "hit_rate_at_k": 0.833333,
+      "mrr_at_k": 0.833333,
+      "recall_at_k": 0.833333,
+      "unanswerable": 2,
+      "unanswerable_no_hit_rate": 1.0
+    },
+    "holdout": {
+      "answerable": 6,
+      "cases": 8,
+      "hit_rate_at_k": 0.833333,
+      "mrr_at_k": 0.833333,
+      "recall_at_k": 0.833333,
+      "unanswerable": 2,
+      "unanswerable_no_hit_rate": 1.0
+    }
+  },
+  "by_tag": {
+    "exact_terms": {
+      "answerable": 9,
+      "cases": 9,
+      "hit_rate_at_k": 1.0,
+      "mrr_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "incident": {
+      "answerable": 2,
+      "cases": 2,
+      "hit_rate_at_k": 1.0,
+      "mrr_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "multi_document": {
+      "answerable": 1,
+      "cases": 1,
+      "hit_rate_at_k": 0.0,
+      "mrr_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "operations": {
+      "answerable": 1,
+      "cases": 1,
+      "hit_rate_at_k": 1.0,
+      "mrr_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "out_of_domain": {
+      "answerable": 0,
+      "cases": 2,
+      "hit_rate_at_k": null,
+      "mrr_at_k": null,
+      "recall_at_k": null,
+      "unanswerable": 2,
+      "unanswerable_no_hit_rate": 1.0
+    },
+    "paraphrase": {
+      "answerable": 3,
+      "cases": 3,
+      "hit_rate_at_k": 0.333333,
+      "mrr_at_k": 0.333333,
+      "recall_at_k": 0.333333,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "policy": {
+      "answerable": 3,
+      "cases": 3,
+      "hit_rate_at_k": 1.0,
+      "mrr_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "prompt_injection": {
+      "answerable": 1,
+      "cases": 1,
+      "hit_rate_at_k": 0.0,
+      "mrr_at_k": 0.0,
+      "recall_at_k": 0.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "replay": {
+      "answerable": 2,
+      "cases": 2,
+      "hit_rate_at_k": 1.0,
+      "mrr_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "retention": {
+      "answerable": 1,
+      "cases": 1,
+      "hit_rate_at_k": 1.0,
+      "mrr_at_k": 1.0,
+      "recall_at_k": 1.0,
+      "unanswerable": 0,
+      "unanswerable_no_hit_rate": null
+    },
+    "security": {
+      "answerable": 2,
+      "cases": 3,
+      "hit_rate_at_k": 0.5,
+      "mrr_at_k": 0.5,
+      "recall_at_k": 0.5,
+      "unanswerable": 1,
+      "unanswerable_no_hit_rate": 1.0
+    },
+    "stale_source": {
+      "answerable": 0,
+      "cases": 1,
+      "hit_rate_at_k": null,
+      "mrr_at_k": null,
+      "recall_at_k": null,
+      "unanswerable": 1,
+      "unanswerable_no_hit_rate": 1.0
+    },
+    "unanswerable": {
+      "answerable": 0,
+      "cases": 4,
+      "hit_rate_at_k": null,
+      "mrr_at_k": null,
+      "recall_at_k": null,
+      "unanswerable": 4,
+      "unanswerable_no_hit_rate": 1.0
+    }
+  },
+  "cases": [
+    {
+      "case_id": "R001",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "webhook-delivery-policy@v2"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "webhook-delivery-policy@v2"
+      ],
+      "split": "dev",
+      "tags": [
+        "policy",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R002",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "webhook-delivery-policy@v2"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "webhook-delivery-policy@v2"
+      ],
+      "split": "holdout",
+      "tags": [
+        "policy",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R003",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "webhook-delivery-policy@v2"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "webhook-delivery-policy@v2"
+      ],
+      "split": "dev",
+      "tags": [
+        "policy",
+        "paraphrase"
+      ]
+    },
+    {
+      "case_id": "R004",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "incident-2026-017@v1"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "incident-2026-017@v1"
+      ],
+      "split": "holdout",
+      "tags": [
+        "incident",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R005",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "incident-2026-017@v1"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "incident-2026-017@v1"
+      ],
+      "split": "dev",
+      "tags": [
+        "incident",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R006",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "on-call-runbook@v1"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "on-call-runbook@v1"
+      ],
+      "split": "holdout",
+      "tags": [
+        "operations",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R007",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "security-boundary@v1"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "security-boundary@v1"
+      ],
+      "split": "dev",
+      "tags": [
+        "security",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R008",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "retention-policy@v1"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "retention-policy@v1"
+      ],
+      "split": "holdout",
+      "tags": [
+        "retention",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R009",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "replay-approval@v1"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "replay-approval@v1"
+      ],
+      "split": "dev",
+      "tags": [
+        "replay",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R010",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "replay-approval@v1"
+      ],
+      "mrr_at_k": 1.0,
+      "no_hit": null,
+      "recall_at_k": 1.0,
+      "retrieved_chunks": 1,
+      "retrieved_documents": [
+        "replay-approval@v1"
+      ],
+      "split": "holdout",
+      "tags": [
+        "replay",
+        "exact_terms"
+      ]
+    },
+    {
+      "case_id": "R011",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "mrr_at_k": null,
+      "no_hit": true,
+      "recall_at_k": null,
+      "retrieved_chunks": 0,
+      "retrieved_documents": [],
+      "split": "dev",
+      "tags": [
+        "unanswerable",
+        "security"
+      ]
+    },
+    {
+      "case_id": "R012",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "mrr_at_k": null,
+      "no_hit": true,
+      "recall_at_k": null,
+      "retrieved_chunks": 0,
+      "retrieved_documents": [],
+      "split": "holdout",
+      "tags": [
+        "unanswerable",
+        "out_of_domain"
+      ]
+    },
+    {
+      "case_id": "R013",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "mrr_at_k": null,
+      "no_hit": true,
+      "recall_at_k": null,
+      "retrieved_chunks": 0,
+      "retrieved_documents": [],
+      "split": "dev",
+      "tags": [
+        "unanswerable",
+        "stale_source"
+      ]
+    },
+    {
+      "case_id": "R014",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "mrr_at_k": null,
+      "no_hit": true,
+      "recall_at_k": null,
+      "retrieved_chunks": 0,
+      "retrieved_documents": [],
+      "split": "holdout",
+      "tags": [
+        "unanswerable",
+        "out_of_domain"
+      ]
+    },
+    {
+      "case_id": "R015",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "on-call-runbook@v1",
+        "webhook-delivery-policy@v2"
+      ],
+      "mrr_at_k": 0.0,
+      "no_hit": null,
+      "recall_at_k": 0.0,
+      "retrieved_chunks": 0,
+      "retrieved_documents": [],
+      "split": "dev",
+      "tags": [
+        "multi_document",
+        "paraphrase"
+      ]
+    },
+    {
+      "case_id": "R016",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        "security-boundary@v1"
+      ],
+      "mrr_at_k": 0.0,
+      "no_hit": null,
+      "recall_at_k": 0.0,
+      "retrieved_chunks": 0,
+      "retrieved_documents": [],
+      "split": "holdout",
+      "tags": [
+        "security",
+        "paraphrase",
+        "prompt_injection"
+      ]
+    }
+  ],
+  "corpus_id": "synthetic-ops-v1",
+  "corpus_sha256": "de4f0091a733f8ecb8c39a644c2e5b01b9b6562d0c04a4d701698ba9da6011a6",
+  "dataset_id": "synthetic-ops-retrieval-v1",
+  "dataset_sha256": "dac71001be82b12149ba5d585fc00065d051d7763ac0d3c8963401452c6492e6",
+  "label_provenance": "Project-authored synthetic labels; not independently adjudicated",
+  "schema_version": 1,
+  "strategy": "postgres-english-fts-v1",
+  "summary": {
+    "answerable": 12,
+    "cases": 16,
+    "hit_rate_at_k": 0.833333,
+    "mrr_at_k": 0.833333,
+    "recall_at_k": 0.833333,
+    "unanswerable": 4,
+    "unanswerable_no_hit_rate": 1.0
+  },
+  "top_k_chunks": 5
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "dataset_id": "synthetic-grounded-generation-v1",
+  "evidence_dataset_sha256": "5a0d31e9bdc60380cad373364af532b10cb9638b1b4f680064fa83e6863d7795",
+  "expected_cases": 12,
+  "provenance": "Hand-selected exact source quotes: relevant passages for 6 answerable and deceptive but insufficient passages for 6 unanswerable queries; not retrieved by the live API",
+  "cases": [
+    {"case_id":"R101","context_refs":[{"case_id":"R101","span_index":0}]},
+    {"case_id":"R102","context_refs":[{"case_id":"R102","span_index":0},{"case_id":"R102","span_index":1}]},
+    {"case_id":"R103","context_refs":[{"case_id":"R103","span_index":0}]},
+    {"case_id":"R104","context_refs":[{"case_id":"R104","span_index":0}]},
+    {"case_id":"R105","context_refs":[{"case_id":"R105","span_index":0},{"case_id":"R105","span_index":1}]},
+    {"case_id":"R106","context_refs":[{"case_id":"R106","span_index":0}]},
+    {"case_id":"R107","context_refs":[{"case_id":"R101","span_index":0}]},
+    {"case_id":"R108","context_refs":[{"case_id":"R101","span_index":0}]},
+    {"case_id":"R109","context_refs":[{"case_id":"R104","span_index":0}]},
+    {"case_id":"R110","context_refs":[{"case_id":"R103","span_index":0}]},
+    {"case_id":"R111","context_refs":[{"case_id":"R102","span_index":0}]},
+    {"case_id":"R112","context_refs":[{"case_id":"R105","span_index":0},{"case_id":"R105","span_index":1}]}
+  ]
+}

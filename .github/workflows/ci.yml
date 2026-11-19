@@ -1,0 +1,235 @@
+name: Quality checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-and-postgres:
+    name: Python + PostgreSQL 17 integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: postgresql://aql_test:aql_test_local_only@127.0.0.1:5432/ai_quality_test
+      TEST_DATABASE_URL: postgresql://aql_test:aql_test_local_only@127.0.0.1:5432/ai_quality_test
+      REQUIRE_INTEGRATION_TESTS: "1"
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: aql_test
+          POSTGRES_PASSWORD: aql_test_local_only
+          POSTGRES_DB: ai_quality_test
+        options: >-
+          --health-cmd "pg_isready -U aql_test -d ai_quality_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: uv dependency manager
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.13.9"
+      - name: Install from the committed lockfile
+        run: uv sync --locked --extra dev
+      - name: Lint and format
+        run: |
+          uv run --locked ruff check .
+          uv run --locked ruff format --check .
+      - name: Apply migrations
+        run: uv run --locked alembic upgrade head
+      - name: Run all tests against real PostgreSQL
+        run: uv run --locked pytest -q --junitxml=test-report.xml
+      - name: Verify no silent integration skips
+        if: always()
+        run: uv run --locked python scripts/check_test_report.py test-report.xml --min-integration 8
+      - name: Produce version-locked retrieval evaluation
+        run: |
+          uv run --locked python -m aql.seed
+          uv run --locked python -m aql.eval_runner \
+            --compare data/evals/baselines/postgres_fts_v1.json \
+            --output test-results/retrieval-report.json
+      - name: Measure why authentic citations do not guarantee claim support
+        run: uv run --locked python -m aql.claim_runner --output test-results/claim-support-report.json
+      - name: Score pre-annotated answer compositions and citation-only negative control
+        run: uv run --locked python -m aql.answer_runner --output test-results/answer-composition-report.json
+      - name: Validate frozen real generation and provisional claim-level review
+        run: uv run --locked python -m aql.generated_claim_runner --output test-results/generated-claim-review-report.json
+      - name: Prepare label-hidden human review packet without fake reviewer answers
+        run: uv run --locked python -m aql.human_review_runner prepare
+      - name: Preserve synthetic evaluation report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: retrieval-evaluation
+          path: |
+            test-results/retrieval-report.json
+            test-results/claim-support-report.json
+            test-results/answer-composition-report.json
+            test-results/generated-claim-review-report.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve blank source-locked reviewer materials
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: label-hidden-review-packet
+          path: |
+            test-results/human-review/packet.json
+            test-results/human-review/template-reviewer_a.json
+            test-results/human-review/template-reviewer_b.json
+          if-no-files-found: error
+          retention-days: 14
+
+  compose-http-smoke:
+    name: Full Compose + real HTTP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build and start full stack
+        run: docker compose up --build -d
+      - name: Verify seeded API over HTTP
+        run: python3 scripts/compose_smoke.py
+      - name: Show diagnostic logs only on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=120
+      - name: Stop only this Compose project
+        if: always()
+        run: docker compose down
+
+  semantic-model-experiment:
+    name: Pinned ONNX embeddings + exact vector/RRF evaluation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://aql_test:aql_test_local_only@127.0.0.1:5432/ai_quality_test
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: aql_test
+          POSTGRES_PASSWORD: aql_test_local_only
+          POSTGRES_DB: ai_quality_test
+        options: >-
+          --health-cmd "pg_isready -U aql_test -d ai_quality_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: uv dependency manager
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.13.9"
+      - name: Install ONNX-only extra from committed lockfile
+        run: uv sync --locked --extra semantic
+      - name: Migrate and seed isolated database
+        run: |
+          uv run --locked --extra semantic alembic upgrade head
+          uv run --locked --extra semantic python -m aql.seed
+      - name: Embed pinned snapshot and compare three strategies
+        run: uv run --locked --extra semantic python -m aql.semantic_runner --download-model
+      - name: Preserve retrieval comparison
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: semantic-retrieval-experiment
+          path: test-results/semantic/*.json
+          if-no-files-found: error
+          retention-days: 14
+
+  nli-model-experiment:
+    name: Pinned ONNX claim-to-evidence NLI (experimental)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: uv dependency manager
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.13.9"
+      - name: Install locked CPU ONNX dependencies (no Torch)
+        run: uv sync --locked --extra semantic
+      - name: Download only the pinned ONNX model and evaluate authored claims
+        run: |
+          uv run --locked --extra semantic python -m aql.nli_runner \
+            --download-model --answer-dataset data/evals/answer_cases_v1.json \
+            --generated-claims
+      - name: Preserve raw predictions and observed confusion matrix
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: claim-nli-experiment
+          path: test-results/nli/*.json
+          if-no-files-found: error
+          retention-days: 14
+
+  cpu-generation-experiment:
+    name: Pinned tiny ONNX generator + raw answer/abstention evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: uv dependency manager
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.13.9"
+      - name: Install locked Python evaluation dependencies
+        run: uv sync --locked --extra dev
+      - name: Node 24
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+      - name: Install locked CPU model runtime without CUDA
+        env:
+          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
+        run: npm ci --prefix experiments/generator --no-audit --no-fund
+      - name: Validate generator syntax and prepare fingerprint-bound questions
+        run: |
+          node --check experiments/generator/generate.mjs
+          uv run --locked python -m aql.generation_runner prepare
+      - name: Run the pinned quantized model on twelve synthetic questions
+        run: |
+          node experiments/generator/generate.mjs \
+            --input test-results/generation/prompts.json \
+            --output test-results/generation/generated-outputs.json \
+            --download-model
+      - name: Score explicit abstention and source-citation protocol (not factuality)
+        run: uv run --locked python -m aql.generation_runner evaluate
+      - name: Archive exact prompts, raw model outputs and measured failures
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: synthetic-generation-experiment
+          path: |
+            test-results/generation/prompts.json
+            test-results/generation/generated-outputs.json
+            test-results/generation/report.json
+          if-no-files-found: error
+          retention-days: 14
+
