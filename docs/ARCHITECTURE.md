@@ -1,4 +1,4 @@
-# Architecture — checkpoints 1–3
+# Architecture — retrieval foundation and experimental evidence gate
 
 AI Quality Lab separates **retrieval correctness** from **answer quality**. The current implementation includes versioned corpus ingestion, lexical + semantic/hybrid retrieval and a deterministic retrieval evaluation harness. Generated answers and answer-level evaluation are not implemented yet.
 
@@ -36,5 +36,5 @@ The evaluator scores current, **version-qualified documents** after deduplicatin
 
 ## Next checkpoint
 
-The initial 16-case lexical evaluation is pinned for per-case regression checks. The version-pinned ONNX adapter, exact cosine search and chunk-level RRF comparator were measured on PostgreSQL 17 in CI: semantic/hybrid recovered two lexical misses but retrieved neighbors on every unanswerable case. A preliminary top-1 cosine gate was then calibrated only on two `dev` negatives and evaluated on untouched holdout cases (see the [semantic experiment](SEMANTIC_EXPERIMENT.md)). It accepted all 12 labeled positives and rejected all four negatives **on this small synthetic set**, but no answer correctness or calibration guarantee follows. An additional post-hoc 12-case near-miss challenge is evaluated without recalibrating that threshold; it is not independent blind data. Before any cited generation, the unanswered questions are evidence-span entailment, hard negative review, and actual answer-level abstention.
+The initial 16-case lexical evaluation is pinned for per-case regression checks. The version-pinned ONNX adapter, exact cosine search and chunk-level RRF comparator were measured on PostgreSQL 17 in CI: semantic/hybrid recovered two lexical misses but retrieved neighbors on every unanswerable case. A preliminary top-1 cosine gate was then calibrated only on two `dev` negatives and evaluated on untouched holdout cases (see the [semantic experiment](SEMANTIC_EXPERIMENT.md)). It accepted all 12 labeled positives and rejected all four negatives **on this small synthetic set**, but no answer correctness or calibration guarantee follows. The post-hoc 12-case near-miss challenge retained all six positives but **accepted all six unanswerable questions**. The positives and negatives have overlapping cosine scores, so retuning a single scalar cutoff cannot perfectly separate them. This failed research policy is not enforced in the API. Before any cited generation, the unanswered questions are independently reviewed evidence-span entailment, hard negative review, and actual answer-level abstention.
 

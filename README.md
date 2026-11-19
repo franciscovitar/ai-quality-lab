@@ -110,13 +110,15 @@ The `--download-model` option explicitly fetches the public 90 MB model, fixed t
 | MRR@5 on 12 answerable cases | 83.33% | **100%** | **100%** |
 | Zero hits on 4 unanswerable cases | **4/4** | **0/4** | **0/4** |
 
-Semantic/hybrid retrieval found both source versions needed by the handcrafted multi-document case and the paraphrased security case. But vector search **always returns neighbors**; it retrieved content on every unanswerable question too. This is *not* a pass on answer safety, abstention or generalization. A separate evidence/rejection gate is the next checkpoint. See [implementation and reproducibility](docs/SEMANTIC_EXPERIMENT.md).
+Semantic/hybrid retrieval found both source versions needed by the handcrafted multi-document case and the paraphrased security case. But vector search **always returns neighbors**; it retrieved content on every unanswerable question too. This is *not* a pass on answer safety, abstention or generalization. An exploratory relevance-score gate is evaluated below; see [implementation and reproducibility](docs/SEMANTIC_EXPERIMENT.md).
 
 An **experimental score-only gate** now uses the maximum cosine score of the two unanswerable `dev` questions to choose a rejection cutoff, then applies it unchanged to `holdout`. Its results are reported separately as `semantic_gated`; they are **not** included in the 100% raw semantic retrieval claim. It does not verify entailment, citations or LLM abstention. See the [experiment protocol](docs/SEMANTIC_EXPERIMENT.md).
 
 A second [`retrieval_stress_v1.json`](data/evals/retrieval_stress_v1.json) challenge set introduces 12 deliberately difficult questions (six answerable, six *near-miss* unanswerable). The same frozen, original-dev threshold is applied to those questions **without recalibration**; `stress_semantic.json` and `stress_gated.json` expose per-case acceptance and retrieval outcomes. This post-hoc, project-authored dataset is neither blinded nor independently reviewed, and its scores must be assessed separately from the original 16-question comparison.
 
 The [score-gate CI run #44566570399](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44566570399) verified **54 tests (46 unit, 8 PostgreSQL integration), zero omitted**, and all three jobs passed. The observed dev-derived threshold was **0.3213214374**; gated semantic retrieval retained **12/12 relevant source sets** and returned no results for **4/4 unanswerable cases**. These numbers are preliminary by design: two dev negatives cannot calibrate a reliable real-world acceptance policy. The model comparison artifact records every cosine score and decision.
+
+**The harder questions exposed the limitation.** In [Actions #44567666413](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44567666413), commit `5eaea02184a75c9fb07d4893597dcf68f5c699df`, all three jobs were green (**56 tests: 48 unit + 8 PostgreSQL integration, 0 skipped**, real HTTP Compose, pinned ONNX). Applying the original-dev score cutoff *without tuning on the 12 new questions* retained **6/6 answerable cases but falsely accepted all 6/6 unanswerable near misses**. Even more importantly, the lowest positive top-1 cosine (`0.485`) was **below** the highest negative (`0.699`), so **no single cutoff can classify all 12 correctly**. The artifact preserves each case and score. Green CI means the experiment ran; **it is not an answer-safety pass**. No LLM answer was generated or measured. See [the complete failure analysis](docs/SEMANTIC_EXPERIMENT.md#observed-failure-semantic-proximity-is-not-answer-sufficiency).
 
 ## Current endpoints
 
@@ -134,7 +136,7 @@ This is an intentionally **non-agentic** first checkpoint. A search result is no
 1. **Foundation:** schema, seed, lexical baseline, reproducible PostgreSQL tests and CI.
 2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report and pinned lexical regression baseline. **Verified with PostgreSQL 17 in CI.**
 3. **Semantic and hybrid retrieval:** pinned ONNX adapter, exact pgvector search and rank fusion; **measured with a real CPU model in CI**.
-4. **Generation:** bounded LLM provider adapter, cited answers and explicit abstention.
+4. **Evidence and generation:** reviewed supporting spans, evidence-sufficiency checks, bounded LLM provider adapter, cited answers and explicit abstention. The score-only gate failed the near-miss challenge; it is not deployable as an answerability classifier.
 5. **Answer evals:** deterministic grounding/citation graders, calibrated semantic review, immutable LLM runs and regression reporting.
 6. **Dashboard and case study:** compare failures, latency/tokens/cost, dockerized end-to-end demo.
 
@@ -145,6 +147,8 @@ No production deployment, real user credentials, private data or paid LLM usage 
 The [checkpoint 3 CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44565483960) on commit `9471979b7903dd5cf87c62b7a9343dbae64c58a5` passed **51 tests (43 unit, 8 PostgreSQL integration; 0 skipped)**, checked the unchanged lexical baseline, passed full Docker Compose/HTTP smoke and ran the pinned ONNX model against PostgreSQL to produce FTS/semantic/hybrid comparison artifacts. These are observed retrieval results, **not** evidence of generated-answer correctness or production reliability.
 
 The [checkpoint 4 score-gate run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44566570399) on commit `85fb40bee432464a30d3192ad19ac39fa568ddb5` passed **54 tests (46 unit, 8 integration; 0 skipped)**, the same Compose smoke and the real-model retrieval/gate experiment. Only two dev-negative questions were used to determine the threshold, so perfect performance on this tiny synthetic sample is **not** a calibrated generalization or answer-faithfulness claim.
+
+The [near-miss challenge run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44567666413) on commit `5eaea02184a75c9fb07d4893597dcf68f5c699df` passed **56 tests (48 unit, 8 integration; 0 skipped)** and all three jobs; its **negative finding** is that a score-only gate accepted all six newly authored unanswerable near misses. That failed *experimental policy metric* is reported as such rather than concealed by a green test badge.
 
 ## References
 

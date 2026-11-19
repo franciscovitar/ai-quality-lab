@@ -19,6 +19,14 @@ Cases cover exact lexical matches, paraphrases, multi-document questions, operat
 
 The `holdout` split is a **declared comparison subset**, but the queries are public and authored by this project. It is *not* an independent blind test set, so repeated tuning against it would invalidate any generalization claim. We report both splits separately, and a stronger external/held-out set is future work.
 
+### Separate post-hoc near-miss dataset
+
+The file [`retrieval_stress_v1.json`](../data/evals/retrieval_stress_v1.json), ID `synthetic-ops-stress-v1`, reuses the **same exact corpus SHA-256** but has **12 different, project-authored queries** created after seeing the original semantic scores. Both `dev` and `holdout` contain 3 answerable paraphrases and 3 unanswerable near misses (6 positive and 6 negative total). The negative questions refer to plausible but *unrecorded* numeric configuration, incident measurements, replay personnel, SQL commands or secrets. These are deliberately **hard negatives**, not ordinary out-of-domain questions.
+
+This stress set is **not** a second independent holdout, despite having a `holdout` tag for reporting slices. Neither its dev nor its holdout labels may be used to select the current score threshold. The ONNX runner computes the cutoff only from **the two original dev negatives**, applies it unchanged to the stress questions within the same run and saves their scores and outcomes separately. No external annotator checked the labels; there is no claim of statistical performance on real traffic.
+
+In [GitHub Actions #44567666413](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44567666413), the gate retained 6/6 labeled positive source sets but falsely accepted **6/6** stress negatives (0/6 no-hit). Since the lowest positive cosine was below the highest negative cosine, a single global top-1 cutoff cannot perfectly separate the challenge cases. See [the failure analysis](SEMANTIC_EXPERIMENT.md#observed-failure-semantic-proximity-is-not-answer-sufficiency). This is a measured flaw in the *retrieval acceptance proxy*, not a measured LLM hallucination rate.
+
 ## Metric semantics
 
 - `top_k_chunks`: retrieval budget in chunks (the API's actual contract), maximum 10. Multiple chunks from the same document are deduplicated before calculating document-level metrics.
