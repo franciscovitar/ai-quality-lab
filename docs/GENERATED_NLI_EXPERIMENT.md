@@ -12,9 +12,9 @@ This experiment extends the [frozen real-output review](GENERATED_CLAIM_REVIEW.m
 
 The original 24 authored claim-pair experiment and 21 composed-answer fixtures still run with the **same loaded NLI model**. Real-output comparison is an optional flag in the experiment runner; the production FastAPI search remains retrieval-only.
 
-## First actual local CPU result — provisional comparison
+## Observed locally and on a real GitHub runner — provisional comparison
 
-On a local pinned ONNX run against the frozen GitHub generator outputs:
+On a local pinned ONNX run **and independently in [GitHub Actions #44592082406](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44592082406)**, code commit `c23c111e65e6792f8591da8d50c94cd0ae395350`, the **same** outputs appeared against the frozen generator texts. All five CI jobs passed, with **170 Python tests including 8 real PostgreSQL integration tests and 0 skipped**, full HTTP Compose and the pinned model experiments. The `claim-nli-experiment` artifact was downloaded and inspected directly: `generated-claims-nli-report.json` contains 15 complete, source-bound observations and the following numbers (not merely a green checkmark):
 
 | Measure | Observation |
 |---|---:|
