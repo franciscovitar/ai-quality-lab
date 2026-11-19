@@ -33,6 +33,8 @@ def test_demo_preserves_frozen_model_answers_and_sources() -> None:
         assert example["model_answer"] == original_answers[example["id"]]
         assert example["source_passages"] == original_context[example["id"]]
         assert "provisional" in example["method_limit"]
+        assert example["plain_explanation"].endswith(".")
+        assert len(example["plain_explanation"]) > 45
 
 
 def test_demo_routes_need_no_database_or_model_service() -> None:
@@ -41,6 +43,8 @@ def test_demo_routes_need_no_database_or_model_service() -> None:
     assert "text/html" in page.headers["content-type"]
     assert "Cinco respuestas bajo la lupa" in page.text
     assert 'id="case-answer"' in page.text
+    assert page.text.index('id="case-simple"') < page.text.index('id="case-question"')
+    assert page.text.count('id="case-observation"') == 1
     assert "Sin generación en vivo" in page.text
 
     for asset, mime in [("demo.css", "text/css"), ("demo.js", "javascript")]:
@@ -70,3 +74,5 @@ def test_ui_renders_snapshot_as_text_not_html() -> None:
     assert "innerHTML" not in javascript
     assert "eval(" not in javascript
     assert 'fetch("/v1/demo/examples"' in javascript
+    assert 'byId("case-simple").textContent = item.plain_explanation' in javascript
+    assert 'cases.findIndex((item) => item.id === "R106")' in javascript

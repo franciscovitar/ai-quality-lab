@@ -27,6 +27,7 @@ function selectCase(cases, buttons, index) {
   byId("case-category").dataset.category = item.category;
   byId("case-question").textContent = item.question;
   byId("case-answer").textContent = item.model_answer;
+  byId("case-simple").textContent = item.plain_explanation;
   byId("case-observation").textContent = item.observation;
   byId("case-method").textContent = `TIPO DE EVIDENCIA · ${item.basis}`;
   byId("case-takeaway").textContent = item.takeaway;
@@ -82,7 +83,9 @@ function renderCases(cases) {
     return button;
   });
   byId("case-list").replaceChildren(...buttons);
-  selectCase(cases, buttons, 0);
+  // Start with the clearest failure for a non-technical visitor.
+  const featuredIndex = cases.findIndex((item) => item.id === "R106");
+  selectCase(cases, buttons, featuredIndex >= 0 ? featuredIndex : 0);
 }
 
 async function initializeDemo() {

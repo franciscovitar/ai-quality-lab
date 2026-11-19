@@ -23,7 +23,7 @@ The rest of the lab separately contains a retrieval baseline (PostgreSQL FTS), p
 ## Watch the most revealing failure: R106
 
 1. Start: `docker compose up --build --wait`. Open **[localhost:8001/demo](http://localhost:8001/demo)**.
-2. Choose **“Tres días no son treinta”** (R106).
+2. The demo automatically opens **“Tres días no son treinta”** (R106); switch cases from the left panel.
 3. Read the exact model response: it claims a **3-day** retention period. The only text supplied to the model states **thirty days**.
 4. Notice the evidence label: the contradiction is a **provisional author review**. The implementation validates that its input/output bytes and source links haven't changed; it doesn't magically prove the semantics.
 

@@ -64,11 +64,12 @@ def main() -> None:
     assert demo["independent_reviewers"] == 0
     assert [case["id"] for case in demo["examples"]] == ["R101", "R106", "R108", "R105", "R110"]
     contradiction = demo["examples"][1]
+    assert "30 días" in contradiction["plain_explanation"]
     assert contradiction["author_claim_counts"]["contradicted"] == 1
     assert "3 days" in contradiction["model_answer"]
     assert any("thirty days" in passage["quote"] for passage in contradiction["source_passages"])
     for path, marker in [
-        ("/demo", b'id="explorer-layout"'),
+        ("/demo", b'id="case-simple"'),
         ("/demo/assets/demo.js", b"selectCase"),
         ("/demo/assets/demo.css", b".explorer-layout"),
     ]:

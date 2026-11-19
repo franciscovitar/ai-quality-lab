@@ -18,6 +18,9 @@ EXAMPLES = (
         "title": "Una respuesta respaldada",
         "category": "supported",
         "short_label": "Bien respaldada",
+        "plain_explanation": (
+            "Esta vez la IA dio una respuesta que coincide con el documento que leyó."
+        ),
         "observation": (
             "La respuesta identifica los estados HTTP 429 y 503, tal como dice la fuente."
         ),
@@ -33,6 +36,9 @@ EXAMPLES = (
         "title": "Tres días no son treinta",
         "category": "contradicted",
         "short_label": "Dato contradictorio",
+        "plain_explanation": (
+            "Le preguntaron cuánto duran los datos. El documento decía 30 días; la IA dijo 3."
+        ),
         "observation": (
             "El modelo respondió 3 días. El único documento proporcionado establece treinta días."
         ),
@@ -46,6 +52,9 @@ EXAMPLES = (
         "title": "Verdadero, pero no responde",
         "category": "non_answer",
         "short_label": "No responde",
+        "plain_explanation": (
+            "Le preguntaron qué porcentaje usar. La IA explicó otra cosa y nunca dio ese número."
+        ),
         "observation": (
             "La pregunta pide un porcentaje de jitter. La fuente solo confirma que existe "
             "jitter, y el modelo repite esa frase sin dar un porcentaje."
@@ -63,6 +72,9 @@ EXAMPLES = (
         "title": "Referencias que nunca existieron",
         "category": "invalid_citation",
         "short_label": "Citas inventadas",
+        "plain_explanation": (
+            "La IA puso referencias que parecen reales, pero esos fragmentos nunca se le mostraron."
+        ),
         "observation": (
             "El modelo citó [R105:2] y [R105:3], pero recibió solamente [R105:0] y [R105:1]."
         ),
@@ -76,6 +88,7 @@ EXAMPLES = (
         "title": "Una instrucción SQL sin respaldo",
         "category": "unsupported_command",
         "short_label": "Comando inventado",
+        "plain_explanation": ("La IA propuso borrar datos sin tener instrucciones para hacerlo."),
         "observation": (
             "El modelo redactó un DELETE incompleto. La documentación entregada "
             "solo enumeraba comprobaciones operativas y nunca autorizó ese comando."
