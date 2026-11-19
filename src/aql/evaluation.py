@@ -136,9 +136,12 @@ def evaluate_retrieval(
     retrieve: Callable[[str, int], Sequence[SearchHit]],
     *,
     top_k: int = 5,
+    strategy: str = "postgres-english-fts-v1",
 ) -> dict:
     if not 1 <= top_k <= 10:
         raise ValueError("top_k must be 1 through 10 (chunks)")
+    if not strategy.strip():
+        raise ValueError("strategy must identify the retrieval algorithm")
 
     rows: list[dict] = []
     for case in dataset.data.cases:
@@ -182,7 +185,7 @@ def evaluate_retrieval(
         "dataset_sha256": dataset.dataset_sha256,
         "corpus_id": dataset.data.corpus_id,
         "corpus_sha256": dataset.data.corpus_sha256,
-        "strategy": "postgres-english-fts-v1",
+        "strategy": strategy,
         "top_k_chunks": top_k,
         "label_provenance": dataset.data.label_provenance,
         "summary": _aggregate(rows),

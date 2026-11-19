@@ -16,10 +16,11 @@ The sample corpus is wholly synthetic. It describes fictional webhook operations
 - **PostgreSQL 17 + pgvector:** relational versions, full-text baseline and a reserved vector column for later hybrid retrieval.
 - **Synthetic corpus:** source versions, hashes, paragraph offsets and stable IDs; never update a source silently.
 - **Golden retrieval set:** 16 synthetic cases with current-version labels, positive/negative outcomes, split/tag slices and hash-locked corpus provenance.
+- **Semantic experiment:** optional, commit-pinned local ONNX embeddings with pgvector exact cosine and RRF, compared against the same goldens; no paid model API.
 - **Testing:** pure unit tests plus PostgreSQL integration tests; CI fails on missing/skipped DB coverage.
 - **Future:** embeddings, RAG answers with citations/abstention, eval harness, comparison dashboard in Next.js.
 
-See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md) and [Decisions](docs/DECISIONS.md) for details and limits.
+See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md) and [Decisions](docs/DECISIONS.md) for details and limits.
 
 ## Quick start — full local demo stack
 
@@ -64,7 +65,7 @@ export DATABASE_URL=postgresql://aql_test:aql_test_local_only@127.0.0.1:55435/ai
 export TEST_DATABASE_URL="$DATABASE_URL"
 uv run --locked alembic upgrade head
 REQUIRE_INTEGRATION_TESTS=1 uv run --locked pytest -q --junitxml=test-report.xml
-uv run --locked python scripts/check_test_report.py test-report.xml --min-integration 6
+uv run --locked python scripts/check_test_report.py test-report.xml --min-integration 8
 uv run --locked python -m aql.seed
 uv run --locked python -m aql.eval_runner --output test-results/retrieval-report.json
 docker compose -f compose.test.yaml down
@@ -92,6 +93,17 @@ Reports contain document-level Recall@k, MRR@k and HitRate@k for answerable ques
 
 The declared `holdout` split is public and project-authored, not a blind external test set. On [GitHub Actions #44548351392](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44548351392), the 16 cases yielded **Recall@5 = 83.33%, MRR@5 = 83.33%, and 4/4 unanswerable questions with zero retrieved chunks**. The two failures were a multi-document question and a paraphrase, consistent with strict lexical AND. The real PostgreSQL JSON report is stored as a [versioned baseline](data/evals/baselines/postgres_fts_v1.json), and CI will reject per-case regressions against it. The [dataset card](docs/DATASET_CARD.md) documents all limitations, including document- rather than evidence-span-level labels.
 
+### Optional semantic and hybrid comparison
+
+The pinned ONNX model uses FastEmbed on CPU; it is **not installed or downloaded by the normal API image**. On an isolated, migrated and seeded PostgreSQL database with `DATABASE_URL` set:
+
+```bash
+uv sync --locked --extra dev --extra semantic
+uv run --locked --extra semantic python -m aql.semantic_runner --download-model
+```
+
+The `--download-model` option explicitly fetches the public 90 MB model, fixed to a known snapshot. Without it, the runner requires the pinned model to be cached. The script writes embeddings transactionally, refuses other model revisions, then evaluates FTS, exact cosine and rank-based hybrid on identical questions and generates comparison JSON. The normal CI tests pgvector with controlled synthetic vectors; the separate model job validates actual inference when it succeeds. This experiment is not a production retrieval service, nor a model accuracy claim. See [implementation and reproducibility](docs/SEMANTIC_EXPERIMENT.md).
+
 ## Current endpoints
 
 | Method | Path | Behavior |
@@ -107,7 +119,7 @@ This is an intentionally **non-agentic** first checkpoint. A search result is no
 
 1. **Foundation:** schema, seed, lexical baseline, reproducible PostgreSQL tests and CI.
 2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report and pinned lexical regression baseline. **Verified with PostgreSQL 17 in CI.**
-3. **Semantic and hybrid retrieval:** fixed embedding model metadata and fair FTS-vs-hybrid comparison.
+3. **Semantic and hybrid retrieval:** pinned ONNX adapter, exact pgvector search and rank fusion **implemented; real-model verification pending**.
 4. **Generation:** bounded LLM provider adapter, cited answers and explicit abstention.
 5. **Answer evals:** deterministic grounding/citation graders, calibrated semantic review, immutable LLM runs and regression reporting.
 6. **Dashboard and case study:** compare failures, latency/tokens/cost, dockerized end-to-end demo.

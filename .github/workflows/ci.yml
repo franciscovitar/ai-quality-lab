@@ -53,7 +53,7 @@ jobs:
         run: uv run --locked pytest -q --junitxml=test-report.xml
       - name: Verify no silent integration skips
         if: always()
-        run: uv run --locked python scripts/check_test_report.py test-report.xml --min-integration 6
+        run: uv run --locked python scripts/check_test_report.py test-report.xml --min-integration 8
       - name: Produce version-locked retrieval evaluation
         run: |
           uv run --locked python -m aql.seed
@@ -85,4 +85,51 @@ jobs:
       - name: Stop only this Compose project
         if: always()
         run: docker compose down
+
+  semantic-model-experiment:
+    name: Pinned ONNX embeddings + exact vector/RRF evaluation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://aql_test:aql_test_local_only@127.0.0.1:5432/ai_quality_test
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: aql_test
+          POSTGRES_PASSWORD: aql_test_local_only
+          POSTGRES_DB: ai_quality_test
+        options: >-
+          --health-cmd "pg_isready -U aql_test -d ai_quality_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: uv dependency manager
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.13.9"
+      - name: Install ONNX-only extra from committed lockfile
+        run: uv sync --locked --extra semantic
+      - name: Migrate and seed isolated database
+        run: |
+          uv run --locked --extra semantic alembic upgrade head
+          uv run --locked --extra semantic python -m aql.seed
+      - name: Embed pinned snapshot and compare three strategies
+        run: uv run --locked --extra semantic python -m aql.semantic_runner --download-model
+      - name: Preserve retrieval comparison
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: semantic-retrieval-experiment
+          path: test-results/semantic/*.json
+          if-no-files-found: error
+          retention-days: 14
 

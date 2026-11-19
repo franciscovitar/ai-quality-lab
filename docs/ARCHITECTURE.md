@@ -36,5 +36,5 @@ The evaluator scores current, **version-qualified documents** after deduplicatin
 
 ## Next checkpoint
 
-The initial 16-case lexical evaluation is observed on PostgreSQL 17 and pinned for per-case regression checks (see the dataset card). Next, introduce a version-pinned embedding adapter and compare semantic/hybrid retrieval against the unchanged FTS baseline on the same cases. Only after measuring retrieval will we implement cited RAG generation and LLM-judge calibration.
+The initial 16-case lexical evaluation is observed on PostgreSQL 17 and pinned for per-case regression checks (see the dataset card). A separate version-pinned ONNX adapter, exact cosine search and chunk-level RRF comparator are now implemented, with their real-model outcomes to be observed in the new CI job. See the [semantic experiment](SEMANTIC_EXPERIMENT.md). Only after measuring retrieval will we implement cited RAG generation and LLM-judge calibration.
 

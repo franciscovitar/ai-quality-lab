@@ -24,3 +24,7 @@
 
 **Accepted for checkpoint 2.** The first comparison uses a small authored synthetic dataset with explicit positive/negative cases, `dev` and `holdout` slices, source version labels, corpus SHA-256 pinning and per-case results. No network or paid model is needed. Metrics use the same chunk top-k budget as the HTTP API, then deduplicate source versions. Regressions are evaluated per case so improving aggregate scores cannot conceal a previously correct query getting worse. `unanswerable_no_hit_rate` is only a retrieval proxy; no answer abstention or grounding is claimed. The public, author-created `holdout` split is not independently blind, and version labels are coarser than evidence spans; both limits are tracked in the dataset card.
 
+## ADR-007: Pinned CPU ONNX embeddings, exact vector scan and rank fusion
+
+**Accepted for experiment.** Use FastEmbed in an optional dependency group, explicitly download a full-SHA-pinned public ONNX snapshot, and index the synthetic corpus in the existing `vector(384)` fields. The implementation refuses mixed model revisions and incomplete indexes, and preserves transaction rollback on bad embeddings. At this scale pgvector exact cosine ordering avoids approximate-index recall loss. RRF operates on ranked chunk IDs and has a declared candidate window; it never mixes incompatible raw FTS and cosine scores. The existing lexical baseline and its regression gate stay untouched. No semantic relevance or hybrid improvement is asserted before running the real pinned model against PostgreSQL.
+
