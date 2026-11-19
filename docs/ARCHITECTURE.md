@@ -1,6 +1,6 @@
-# Architecture — retrieval foundation and experimental evidence gate
+# Architecture — retrieval foundation and layered experimental evidence evaluation
 
-AI Quality Lab separates **retrieval correctness** from **answer quality**. The current implementation includes versioned corpus ingestion, lexical + semantic/hybrid retrieval and a deterministic retrieval evaluation harness. Generated answers and answer-level evaluation are not implemented yet.
+AI Quality Lab separates **retrieval correctness** from **answer quality**. The current implementation includes versioned corpus ingestion, lexical + semantic/hybrid retrieval, a deterministic retrieval evaluator, exact citation checks, a measured NLI classifier, and **pre-annotated response-composition evaluation**. It does **not** generate LLM answers or parse unrestricted answer text into claims.
 
 ## Implemented path
 
@@ -29,6 +29,8 @@ A distinct [evidence-level evaluator](EVIDENCE_PROTOCOL.md) checks labeled **exa
 
 A [separate claim-pair scorer](CLAIM_EVALUATION.md) now accepts verdicts from an external future judge and compares them to 24 version-locked authored `entailed`/`not_entailed` judgments. The first deliberately unsafe baseline declares all authentic citations supportive, exposing false-support errors even though every quote is real. The scorer itself **does not determine** if a claim is entailed; running it against an oracle or citation-only baseline is not a measured LLM capability.
 
+An opt-in pinned ONNX cross-encoder is a **real, separate claim-verdict source**. It consumes exact quote/claim pairs, not complete answers. A [composed-answer evaluator](ANSWER_EVALUATION.md) reuses its verdicts to score 21 **fully pre-annotated** response fixtures for manually required facts, citation-source alignment and abstention. The chain is **corpus → evidence anchors → authored claims → composed answer fixtures → supplied verdicts**. The latter stages are separate from the HTTP API. The actual NLI model incorrectly approved `A021`, a response containing both possible crash orders, illustrating why whole-answer consistency is not guaranteed by isolated sentence entailment checks.
+
 ## Trust and failure boundaries
 
 - Corpus data is synthetic, but still treated as untrusted instructions.
@@ -36,11 +38,11 @@ A [separate claim-pair scorer](CLAIM_EVALUATION.md) now accepts verdicts from an
 - `/health` is independent of `/ready` so a broken DB does not disguise process liveness.
 - Seed only inserts; a changed existing document/chunk produces an explicit conflict and transaction rollback.
 - Test DB is restricted by name and host; integration fixtures roll back inserted rows.
-- Exact vector retrieval and **structured source-citation integrity** have separate tests; **generated-answer entailment and citation faithfulness do not**.
+- Exact vector retrieval, **structured source-citation integrity**, isolated-claim NLI and **pre-annotated** response composition have separate tests. **Actual generated-answer entailment, exhaustive automatic claim extraction and end-to-end attribution still do not**.
 
 ## Next checkpoint
 
 The initial 16-case lexical evaluation is pinned for per-case regression checks. The version-pinned ONNX adapter, exact cosine search and chunk-level RRF comparator were measured on PostgreSQL 17 in CI: semantic/hybrid recovered two lexical misses but retrieved neighbors on every unanswerable case. A preliminary top-1 cosine gate was then calibrated only on two `dev` negatives and evaluated on untouched holdout cases (see the [semantic experiment](SEMANTIC_EXPERIMENT.md)). It accepted all 12 labeled positives and rejected all four negatives **on this small synthetic set**, but no answer correctness or calibration guarantee follows. The post-hoc 12-case near-miss challenge retained all six positives but **accepted all six unanswerable questions**. The positives and negatives have overlapping cosine scores, so retuning a single scalar cutoff cannot perfectly separate them. This failed research policy is not enforced in the API. Before any cited generation, the unanswered questions are independently reviewed evidence-span entailment, hard negative review, and actual answer-level abstention.
 
-The [evidence-span CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515) then measured **8/8 labeled source spans retrieved by semantic search** (0/8 by FTS on the paraphrased challenge), while the semantic candidate still returned chunks for **all six unanswerable near misses**. That is why the next subsystem must evaluate whether *the claim follows from the retrieved spans*, rather than merely validating that a similar document or a matching quotation exists. All eight annotations remain project-authored and unreviewed by an independent judge.
+The [evidence-span CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515) measured **8/8 labeled source spans retrieved by semantic search** (0/8 by FTS on the paraphrased challenge), while the semantic candidate still returned chunks for **all six unanswerable near misses**. The [claim-level NLI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44580522095) found **one falsely entailed contradiction among 12 unsupported claims**. The [answer-composition run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44582652843) then showed that this error **propagates to falsely approving a whole contradictory response** despite valid citations and manually required coverage. Next is a reviewed, sealed dataset and actual generated-answer/claim-extraction evaluation, not a production gate. Every current annotation remains project-authored.
 

@@ -74,7 +74,7 @@ The NLI confusion matrix was **TP 9, TN 11, FP 1, FN 3**, with **10/12 correct**
 - `C010` is a **supported** replay-audit requirement; the model classified it `contradiction` (false rejection).
 - `C005` reverses the incident timeline: it says the worker crashed *before* storing a receipt, though the quote says *after*. The model classified it `entailment` — a **false approval of a direct contradiction**. This is the most important unsafe error; the raw entailment logit was 1.850035.
 
-These are **not** regression thresholds: deliberately changing prompts/thresholds on the same tiny public set would overfit it. A green experiment job confirms execution and artifact preservation, **not** that the model met a release-quality acceptance criterion.
+These are **not** regression thresholds: deliberately changing prompts/thresholds on the same tiny public set would overfit it. A green experiment job confirms execution and artifact preservation, **not** that the model met a release-quality acceptance criterion. The [21-case composed-answer experiment](ANSWER_EVALUATION.md) reuses these actual predictions and demonstrates that the false entailment on `C005` can lead to **approving a complete but contradictory response**.
 
 Reproduce in a local isolated environment with Python 3.13 (download the public pinned snapshot only when you explicitly allow it):
 
