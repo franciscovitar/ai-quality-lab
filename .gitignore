@@ -11,4 +11,5 @@ build/
 .env.*
 !.env.example
 test-results/
+node_modules/
 

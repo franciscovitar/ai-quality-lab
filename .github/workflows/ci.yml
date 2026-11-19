@@ -169,3 +169,51 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  cpu-generation-experiment:
+    name: Pinned tiny ONNX generator + raw answer/abstention evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - name: uv dependency manager
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          version: "0.13.9"
+      - name: Install locked Python evaluation dependencies
+        run: uv sync --locked --extra dev
+      - name: Node 24
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+      - name: Install locked CPU model runtime without CUDA
+        env:
+          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
+        run: npm ci --prefix experiments/generator --no-audit --no-fund
+      - name: Validate generator syntax and prepare fingerprint-bound questions
+        run: |
+          node --check experiments/generator/generate.mjs
+          uv run --locked python -m aql.generation_runner prepare
+      - name: Run the pinned quantized model on twelve synthetic questions
+        run: |
+          node experiments/generator/generate.mjs \
+            --input test-results/generation/prompts.json \
+            --output test-results/generation/generated-outputs.json \
+            --download-model
+      - name: Score explicit abstention and source-citation protocol (not factuality)
+        run: uv run --locked python -m aql.generation_runner evaluate
+      - name: Archive exact prompts, raw model outputs and measured failures
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: synthetic-generation-experiment
+          path: |
+            test-results/generation/prompts.json
+            test-results/generation/generated-outputs.json
+            test-results/generation/report.json
+          if-no-files-found: error
+          retention-days: 14
+
