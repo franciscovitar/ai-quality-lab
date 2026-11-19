@@ -2,7 +2,7 @@
 
 **Engineering a reliable retrieval system is more than getting an LLM to answer a prompt.** AI Quality Lab is a portfolio project for measurable, testable RAG systems: a versioned synthetic corpus, reproducible retrieval experiments, evidence-backed answers, and automated quality gates.
 
-> **Current state — checkpoint 2 retrieval baseline verified in CI.** The PostgreSQL/FTS foundation, Docker Compose/HTTP checks and version-locked golden evaluation have real GitHub Actions evidence. **There are no LLM-generated answers or semantic embeddings yet.** See [roadmap](#roadmap).
+> **Current state — checkpoint 3 retrieval comparison verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, version-locked goldens and a pinned CPU ONNX embedding model have been exercised on a GitHub runner. **There are no LLM-generated answers, evidence-backed citations or production accuracy claims yet.** See [roadmap](#roadmap).
 
 ## Why this exists
 
@@ -102,7 +102,17 @@ uv sync --locked --extra dev --extra semantic
 uv run --locked --extra semantic python -m aql.semantic_runner --download-model
 ```
 
-The `--download-model` option explicitly fetches the public 90 MB model, fixed to a known snapshot. Without it, the runner requires the pinned model to be cached. The script writes embeddings transactionally, refuses other model revisions, then evaluates FTS, exact cosine and rank-based hybrid on identical questions and generates comparison JSON. The normal CI tests pgvector with controlled synthetic vectors; the separate model job validates actual inference when it succeeds. This experiment is not a production retrieval service, nor a model accuracy claim. See [implementation and reproducibility](docs/SEMANTIC_EXPERIMENT.md).
+The `--download-model` option explicitly fetches the public 90 MB model, fixed to a known snapshot. Without it, the runner requires the pinned model to be cached. The script writes embeddings transactionally, refuses other model revisions, then evaluates FTS, exact cosine and rank-based hybrid on identical questions and generates comparison JSON. The normal CI tests pgvector with controlled synthetic vectors; the **separate real-model job passed** in [Actions #44565483960](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44565483960). The measured trade-off is important:
+
+| 16 synthetic questions | FTS | Exact semantic | RRF hybrid |
+|---|---:|---:|---:|
+| Recall@5 on 12 answerable cases | 83.33% | **100%** | **100%** |
+| MRR@5 on 12 answerable cases | 83.33% | **100%** | **100%** |
+| Zero hits on 4 unanswerable cases | **4/4** | **0/4** | **0/4** |
+
+Semantic/hybrid retrieval found both source versions needed by the handcrafted multi-document case and the paraphrased security case. But vector search **always returns neighbors**; it retrieved content on every unanswerable question too. This is *not* a pass on answer safety, abstention or generalization. A separate evidence/rejection gate is the next checkpoint. See [implementation and reproducibility](docs/SEMANTIC_EXPERIMENT.md).
+
+An **experimental score-only gate** now uses the maximum cosine score of the two unanswerable `dev` questions to choose a rejection cutoff, then applies it unchanged to `holdout`. Its results are reported separately as `semantic_gated`; they are **not** included in the 100% raw semantic retrieval claim. It does not verify entailment, citations or LLM abstention. See the [experiment protocol](docs/SEMANTIC_EXPERIMENT.md).
 
 ## Current endpoints
 
@@ -119,7 +129,7 @@ This is an intentionally **non-agentic** first checkpoint. A search result is no
 
 1. **Foundation:** schema, seed, lexical baseline, reproducible PostgreSQL tests and CI.
 2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report and pinned lexical regression baseline. **Verified with PostgreSQL 17 in CI.**
-3. **Semantic and hybrid retrieval:** pinned ONNX adapter, exact pgvector search and rank fusion **implemented; real-model verification pending**.
+3. **Semantic and hybrid retrieval:** pinned ONNX adapter, exact pgvector search and rank fusion; **measured with a real CPU model in CI**.
 4. **Generation:** bounded LLM provider adapter, cited answers and explicit abstention.
 5. **Answer evals:** deterministic grounding/citation graders, calibrated semantic review, immutable LLM runs and regression reporting.
 6. **Dashboard and case study:** compare failures, latency/tokens/cost, dockerized end-to-end demo.
@@ -128,7 +138,7 @@ No production deployment, real user credentials, private data or paid LLM usage 
 
 ## Engineering evidence
 
-The [checkpoint 2 CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44548351392) on commit `615d590fbe3c83bd291e30c50dfa5a60c03b73ad` passed **40 tests (34 unit, 6 PostgreSQL integration; 0 skipped)**, produced the 16-case retrieval report and passed full Docker Compose/HTTP smoke (`/health`, `/ready`, current documents and search). This is an observed retrieval result, **not** evidence of real-model answer quality. Fake providers, once added, will test orchestration and contracts, not production accuracy.
+The [checkpoint 3 CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44565483960) on commit `9471979b7903dd5cf87c62b7a9343dbae64c58a5` passed **51 tests (43 unit, 8 PostgreSQL integration; 0 skipped)**, checked the unchanged lexical baseline, passed full Docker Compose/HTTP smoke and ran the pinned ONNX model against PostgreSQL to produce FTS/semantic/hybrid comparison artifacts. These are observed retrieval results, **not** evidence of generated-answer correctness or production reliability.
 
 ## References
 

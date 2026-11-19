@@ -1,6 +1,6 @@
-# Architecture — checkpoints 1–2
+# Architecture — checkpoints 1–3
 
-AI Quality Lab separates **retrieval correctness** from **answer quality**. The current implementation includes versioned corpus ingestion, lexical retrieval and a deterministic retrieval evaluation harness. Generation and semantic evaluation are not implemented yet.
+AI Quality Lab separates **retrieval correctness** from **answer quality**. The current implementation includes versioned corpus ingestion, lexical + semantic/hybrid retrieval and a deterministic retrieval evaluation harness. Generated answers and answer-level evaluation are not implemented yet.
 
 ## Implemented path
 
@@ -17,7 +17,7 @@ flowchart TD
     Eval --> Report["Deterministic JSON report"]
 ```
 
-`documents` stores content and its SHA-256 digest, version, effective date, title and a unique current version per slug. `chunks` stores stable UUIDs, text spans, paragraph chunker version and a generated English `tsvector`. Embeddings are nullable pending the semantic checkpoint, with a constraint requiring model metadata when populated.
+`documents` stores content and its SHA-256 digest, version, effective date, title and a unique current version per slug. `chunks` stores stable UUIDs, text spans, paragraph chunker version and a generated English `tsvector`. Optional 384-dimensional embeddings are materialized only for the pinned ONNX experiment, with model metadata paired to the vector.
 
 Retrieval applies `documents.is_current` before ranking. The API validates input and returns stable fragment IDs; PostgreSQL's `plainto_tsquery` accepts the question as a **bound value**, not SQL string interpolation. No LLM calls or side effects exist in the current read path.
 
@@ -36,5 +36,5 @@ The evaluator scores current, **version-qualified documents** after deduplicatin
 
 ## Next checkpoint
 
-The initial 16-case lexical evaluation is observed on PostgreSQL 17 and pinned for per-case regression checks (see the dataset card). A separate version-pinned ONNX adapter, exact cosine search and chunk-level RRF comparator are now implemented, with their real-model outcomes to be observed in the new CI job. See the [semantic experiment](SEMANTIC_EXPERIMENT.md). Only after measuring retrieval will we implement cited RAG generation and LLM-judge calibration.
+The initial 16-case lexical evaluation is pinned for per-case regression checks. The version-pinned ONNX adapter, exact cosine search and chunk-level RRF comparator were measured on PostgreSQL 17 in CI: semantic/hybrid recovered two lexical misses but retrieved neighbors on every unanswerable case. See the [semantic experiment](SEMANTIC_EXPERIMENT.md). Next, introduce a cautious evidence sufficiency gate before any cited generation and calibrate it using a larger, independently reviewed dataset.
 
