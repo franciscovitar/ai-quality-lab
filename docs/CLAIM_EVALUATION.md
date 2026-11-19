@@ -28,6 +28,8 @@ The **false-supported rate** is especially important here:
 
 The built-in baseline `unsafe-citation-presence-baseline-v1` predicts `entailed` for **every** case solely because all cases have valid supporting-source references. It is intentionally unsafe and must be *reported as a negative control*, not advertised as an AI model. With the authored 12/12 balance, it gets **12/24 cases correct (50% accuracy), macro-F1 0.333333 and 12/12 false supports (FSR 1.0)**. Green CI means this negative control executed, **not** that it passed a safety threshold.
 
+**Observed in [GitHub Actions #44578890769](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44578890769), commit `9f8a28e349291b04c0b5f2c70e15eafee838b407`:** all three jobs passed, with **91 tests (83 unit, 8 PostgreSQL integration), zero skipped**, real HTTP Compose and the pinned ONNX experiment. The runner printed `12/24 correct, false-supported=12/12, macro-F1=0.333333`; I checked the uploaded `claim-support-report.json` inside the `retrieval-evaluation` artifact. The report binds to claim dataset SHA-256 `1c6dc7fb386aa6da7f506caf98fc40788bfa52371688de8349c13b1ed42b53c6`, records **6/12 correct on each public split** and includes all 24 individual predictions. This is measured behavior of a deliberately naive constant-label rule, **not** a trained entailment judge.
+
 Run locally without PostgreSQL, embeddings or any paid service:
 
 ```bash

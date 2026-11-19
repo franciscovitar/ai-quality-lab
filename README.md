@@ -132,6 +132,8 @@ The separate [evidence protocol](docs/EVIDENCE_PROTOCOL.md) adds eight project-a
 
 The [claim benchmark](docs/CLAIM_EVALUATION.md) adds **24 authored claim/quote pairs** that deliberately mix supported and unsupported statements using the **same authentic source passages**. Every label is tied by SHA-256 through the evidence dataset to the unchanged source corpus. The CLI scores *supplied* `entailed`/`not_entailed` verdicts, rejects missing or duplicated predictions, and reports false-supported rate and a full confusion matrix. Its initial **citation-only negative control** predicts every claim is supported: it correctly classifies **12/24**, but falsely marks **12/12 unsupported claims as supported**. Those are baseline arithmetic on authored labels, **not model-generated judgments or a verified entailment system**. CI runs and archives the negative-control report separately from the retrieval metrics.
 
+**Observed on [Actions #44578890769](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44578890769), commit `9f8a28e349291b04c0b5f2c70e15eafee838b407`:** **91 tests passed** (83 unit + 8 PostgreSQL integration; 0 omitted), with all three jobs green. The archived claim report confirmed the full 24-case confusion matrix: **12/24 accuracy, 12/12 falsely supported negatives, macro-F1 0.333333**. This is an intentionally unsafe *negative control*, not an LLM faithfulness result. The earlier FTS regression baseline and the full Compose HTTP smoke also passed.
+
 ## Current endpoints
 
 | Method | Path | Behavior |
@@ -163,6 +165,8 @@ The [checkpoint 4 score-gate run](https://github.com/franciscovitar/ai-quality-l
 The [near-miss challenge run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44567666413) on commit `5eaea02184a75c9fb07d4893597dcf68f5c699df` passed **56 tests (48 unit, 8 integration; 0 skipped)** and all three jobs; its **negative finding** is that a score-only gate accepted all six newly authored unanswerable near misses. That failed *experimental policy metric* is reported as such rather than concealed by a green test badge.
 
 The [evidence-span CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515) on commit `adae4ecc513ed946efd3a9e122e2b4f09f6a55e3` passed **74 tests (66 unit, 8 integration; 0 skipped)** and all three jobs. Exact semantic retrieval covered all **8/8** project-labeled supporting spans in six answerable challenges, while the same method still retrieved candidates for **6/6 unanswerable near misses**. This is a span-coverage result, not LLM-answer correctness or generalization.
+
+The [claim-pair benchmark run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44578890769) on commit `9f8a28e349291b04c0b5f2c70e15eafee838b407` passed **91 tests (83 unit, 8 integration; 0 skipped)** and all three jobs. Its archived **citation-presence negative control** falsely supported all twelve unsupported claims despite referring to authentic sources. No model was used to judge entailment, and no model answer accuracy is claimed.
 
 ## References
 
