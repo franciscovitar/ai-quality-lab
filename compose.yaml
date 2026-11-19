@@ -1,0 +1,58 @@
+name: ai-quality-lab
+
+x-service-app: &service-app
+  build: .
+  environment:
+    DATABASE_URL: postgresql://aql:aql_local_only@db:5432/ai_quality
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: aql
+      POSTGRES_PASSWORD: aql_local_only
+      POSTGRES_DB: ai_quality
+    volumes:
+      - aql_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aql -d ai_quality"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *service-app
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    <<: *service-app
+    command: ["python", "-m", "aql.seed"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    <<: *service-app
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  aql_postgres_data:
+
