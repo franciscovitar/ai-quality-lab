@@ -57,7 +57,9 @@ jobs:
       - name: Produce version-locked retrieval evaluation
         run: |
           uv run --locked python -m aql.seed
-          uv run --locked python -m aql.eval_runner --output test-results/retrieval-report.json
+          uv run --locked python -m aql.eval_runner \
+            --compare data/evals/baselines/postgres_fts_v1.json \
+            --output test-results/retrieval-report.json
       - name: Preserve synthetic evaluation report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

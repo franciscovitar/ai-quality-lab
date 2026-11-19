@@ -2,7 +2,7 @@
 
 **Engineering a reliable retrieval system is more than getting an LLM to answer a prompt.** AI Quality Lab is a portfolio project for measurable, testable RAG systems: a versioned synthetic corpus, reproducible retrieval experiments, evidence-backed answers, and automated quality gates.
 
-> **Current state — checkpoint 2 in development.** The PostgreSQL/FTS foundation has real CI and Compose/HTTP evidence. A version-locked golden dataset and deterministic retrieval evaluator are now implemented, with real PostgreSQL verification pending on this change. **There are no LLM-generated answers or semantic embeddings yet.** See [roadmap](#roadmap).
+> **Current state — checkpoint 2 retrieval baseline verified in CI.** The PostgreSQL/FTS foundation, Docker Compose/HTTP checks and version-locked golden evaluation have real GitHub Actions evidence. **There are no LLM-generated answers or semantic embeddings yet.** See [roadmap](#roadmap).
 
 ## Why this exists
 
@@ -85,12 +85,12 @@ uv run --locked python -m aql.eval_runner --top-k 5 \
   --output test-results/retrieval-report.json
 # Compare only against a prior report from the same dataset, corpus and config:
 uv run --locked python -m aql.eval_runner --top-k 5 \
-  --compare path/to/prior-report.json
+  --compare data/evals/baselines/postgres_fts_v1.json
 ```
 
 Reports contain document-level Recall@k, MRR@k and HitRate@k for answerable questions; a separate `unanswerable_no_hit_rate` measures whether *retrieval* returns nothing on unanswerable questions. **It does not measure LLM abstention, correctness, grounding or cost.** Rankings are bounded by `top_k` **chunks** first, then deduplicated by document version for scoring. Each failure remains visible by case and tag; optional baseline comparison fails if *any* previously correct case regresses, even when averages improve. CI stores the JSON as a short-lived artifact.
 
-The declared `holdout` split is public and project-authored, not a blind external test set. The [dataset card](docs/DATASET_CARD.md) documents that and other limitations, including document- rather than evidence-span-level labels.
+The declared `holdout` split is public and project-authored, not a blind external test set. On [GitHub Actions #44548351392](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44548351392), the 16 cases yielded **Recall@5 = 83.33%, MRR@5 = 83.33%, and 4/4 unanswerable questions with zero retrieved chunks**. The two failures were a multi-document question and a paraphrase, consistent with strict lexical AND. The real PostgreSQL JSON report is stored as a [versioned baseline](data/evals/baselines/postgres_fts_v1.json), and CI will reject per-case regressions against it. The [dataset card](docs/DATASET_CARD.md) documents all limitations, including document- rather than evidence-span-level labels.
 
 ## Current endpoints
 
@@ -106,7 +106,7 @@ This is an intentionally **non-agentic** first checkpoint. A search result is no
 ## Roadmap
 
 1. **Foundation:** schema, seed, lexical baseline, reproducible PostgreSQL tests and CI.
-2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report. **Implemented, real PostgreSQL CI result pending.**
+2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report and pinned lexical regression baseline. **Verified with PostgreSQL 17 in CI.**
 3. **Semantic and hybrid retrieval:** fixed embedding model metadata and fair FTS-vs-hybrid comparison.
 4. **Generation:** bounded LLM provider adapter, cited answers and explicit abstention.
 5. **Answer evals:** deterministic grounding/citation graders, calibrated semantic review, immutable LLM runs and regression reporting.
@@ -116,7 +116,7 @@ No production deployment, real user credentials, private data or paid LLM usage 
 
 ## Engineering evidence
 
-The [checkpoint 1 CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44545714409) verified 27 tests (22 unit, 5 PostgreSQL integration; 0 skipped) and Docker Compose with real HTTP: `/health`, `/ready`, six current documents and a current-policy search. That evidence applies to commit `0c2d499b4fa31d52ce34adb7c8edc5571105514f`, **not automatically to later evaluation changes**. The new golden harness must be tested separately in CI before scores are claimed. Fake providers, once added, will test orchestration and contracts, **not real model quality**.
+The [checkpoint 2 CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44548351392) on commit `615d590fbe3c83bd291e30c50dfa5a60c03b73ad` passed **40 tests (34 unit, 6 PostgreSQL integration; 0 skipped)**, produced the 16-case retrieval report and passed full Docker Compose/HTTP smoke (`/health`, `/ready`, current documents and search). This is an observed retrieval result, **not** evidence of real-model answer quality. Fake providers, once added, will test orchestration and contracts, not production accuracy.
 
 ## References
 

@@ -205,14 +205,19 @@ def find_regressions(baseline: dict, candidate: dict) -> list[str]:
         raise ValueError("Incomparable reports: dataset, corpus or retrieval budget changed")
     prior = {row["case_id"]: row for row in baseline["cases"]}
     current = {row["case_id"]: row for row in candidate["cases"]}
-    if prior.keys() != current.keys() or len(prior) != len(baseline["cases"]):
+    if (
+        prior.keys() != current.keys()
+        or len(prior) != len(baseline["cases"])
+        or len(current) != len(candidate["cases"])
+    ):
         raise ValueError("Incomparable reports: case IDs differ or repeat")
 
     regressions = []
     for case_id in sorted(prior):
         before, after = prior[case_id], current[case_id]
-        if before["expected_behavior"] != after["expected_behavior"]:
-            raise ValueError("Incomparable reports: case behavior changed")
+        for field in ("expected_behavior", "expected_documents", "split", "tags"):
+            if before[field] != after[field]:
+                raise ValueError(f"Incomparable reports: {case_id} {field} changed")
         if before["expected_behavior"] == "answer":
             for metric in ("recall_at_k", "mrr_at_k"):
                 if after[metric] + 1e-6 < before[metric]:

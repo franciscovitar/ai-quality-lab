@@ -14,6 +14,7 @@ from aql.retrieval import SearchHit
 ROOT = Path(__file__).resolve().parents[2]
 CORPUS = ROOT / "data/synthetic_docs/corpus_v1.json"
 DATASET = ROOT / "data/evals/retrieval_v1.json"
+BASELINE = ROOT / "data/evals/baselines/postgres_fts_v1.json"
 
 
 def hit(slug: str, version: int, chunk_id: str) -> SearchHit:
@@ -34,6 +35,17 @@ def test_locked_dataset_has_distinct_splits_and_versioned_goldens() -> None:
     assert {case.expected_behavior for case in loaded.data.cases} == {"answer", "abstain"}
     assert "webhook-delivery-policy@v2" in loaded.current_sources
     assert "webhook-delivery-policy@v1" not in loaded.current_sources
+
+
+def test_committed_baseline_is_bound_to_current_goldens() -> None:
+    golden = load_dataset(DATASET, CORPUS)
+    baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+    assert baseline["dataset_sha256"] == golden.dataset_sha256
+    assert baseline["corpus_sha256"] == golden.data.corpus_sha256
+    assert baseline["summary"]["cases"] == len(golden.data.cases)
+    assert {row["case_id"] for row in baseline["cases"]} == {
+        case.case_id for case in golden.data.cases
+    }
 
 
 def test_corpus_change_requires_review_even_if_labels_still_exist(tmp_path: Path) -> None:
@@ -136,6 +148,19 @@ def test_comparator_catches_unanswerable_false_positive() -> None:
         ),
     )
     assert "R011" in "\n".join(find_regressions(baseline, candidate))
+
+
+def test_comparator_rejects_duplicate_case_or_tampered_labels() -> None:
+    baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+    duplicate = json.loads(report_json(baseline))
+    duplicate["cases"].append(duplicate["cases"][0])
+    with pytest.raises(ValueError, match="case IDs differ or repeat"):
+        find_regressions(baseline, duplicate)
+
+    tampered = json.loads(report_json(baseline))
+    tampered["cases"][0]["expected_documents"] = []
+    with pytest.raises(ValueError, match="expected_documents changed"):
+        find_regressions(baseline, tampered)
 
 
 def test_retrieval_budget_must_be_supported() -> None:

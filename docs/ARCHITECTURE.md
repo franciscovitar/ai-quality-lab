@@ -36,5 +36,5 @@ The evaluator scores current, **version-qualified documents** after deduplicatin
 
 ## Next checkpoint
 
-Observe the first real PostgreSQL golden report, review the authored labels and freeze a justified baseline. Next, introduce a version-pinned embedding adapter and compare semantic/hybrid retrieval against the unchanged FTS baseline on the same cases. Only after measuring retrieval will we implement cited RAG generation and LLM-judge calibration.
+The initial 16-case lexical evaluation is observed on PostgreSQL 17 and pinned for per-case regression checks (see the dataset card). Next, introduce a version-pinned embedding adapter and compare semantic/hybrid retrieval against the unchanged FTS baseline on the same cases. Only after measuring retrieval will we implement cited RAG generation and LLM-judge calibration.
 
