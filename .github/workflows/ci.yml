@@ -64,6 +64,8 @@ jobs:
         run: uv run --locked python -m aql.claim_runner --output test-results/claim-support-report.json
       - name: Score pre-annotated answer compositions and citation-only negative control
         run: uv run --locked python -m aql.answer_runner --output test-results/answer-composition-report.json
+      - name: Validate frozen real generation and provisional claim-level review
+        run: uv run --locked python -m aql.generated_claim_runner --output test-results/generated-claim-review-report.json
       - name: Preserve synthetic evaluation report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -72,6 +74,7 @@ jobs:
             test-results/retrieval-report.json
             test-results/claim-support-report.json
             test-results/answer-composition-report.json
+            test-results/generated-claim-review-report.json
           if-no-files-found: error
           retention-days: 14
 

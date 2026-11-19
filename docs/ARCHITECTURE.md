@@ -33,6 +33,8 @@ An opt-in pinned ONNX cross-encoder is a **real, separate claim-verdict source**
 
 The [real-generation experiment](GENERATION_EXPERIMENT.md) is a **different, isolated path**: version-locked source quotes → prompt builder (with no reference labels) → pinned CPU-only ONNX small-model inference → raw output archive → exact-abstention/citation-*syntax* evaluator. The 12 quotes are curated by hand from the synthetic source corpus; they are **not the output of the retrieval API**. Provenance fingerprints bind prompts, output records, corpus and model-graph SHA-256. The evaluator deliberately does not reuse the claim fixture labels or turn valid citation markers into a factuality verdict. The actual model failed to abstain on all six unsupported prompts in [CI run #44585749946](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44585749946).
 
+For the next experiment, the [frozen-output review](GENERATED_CLAIM_REVIEW.md) retains **byte-identical generated JSON** from a named GitHub runner, then partitions each real answer into human-authored claim and non-claim segments. The verifier rebuilds the original source prompts, checks model/provenance SHA-256 and exact response text coverage, and rejects a claim attributed to a source snippet not shown to the generator. Review labels are explicitly `project_author_provisional` with **zero independent reviewers**, so this path is an integrity-audited annotation scaffold, not a learned classifier or a verified answer-quality gate.
+
 ## Trust and failure boundaries
 
 - Corpus data is synthetic, but still treated as untrusted instructions.

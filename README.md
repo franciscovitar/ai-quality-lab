@@ -2,7 +2,7 @@
 
 **Engineering a reliable retrieval system is more than getting an LLM to answer a prompt.** AI Quality Lab is a portfolio project for measurable, testable RAG systems: a versioned synthetic corpus, reproducible retrieval experiments, evidence-backed answers, and automated quality gates.
 
-> **Current state — retrieval, citation integrity, experimental NLI and an isolated real generation run verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, pinned CPU ONNX embeddings and claim-to-evidence inference have been exercised on GitHub runners. The pre-annotated answer evaluator remains separate from a new **12-question, actual small-model generation experiment**. The generator failed all six strict abstention cases. **There is no independent factuality validation, deployed RAG answer endpoint or production accuracy claim.** See [the real-generation experiment](docs/GENERATION_EXPERIMENT.md) and [roadmap](#roadmap).
+> **Current state — retrieval, citation integrity, experimental NLI and an isolated real generation run verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, pinned CPU ONNX embeddings and claim-to-evidence inference have been exercised on GitHub runners. The pre-annotated answer evaluator remains separate from a **12-question, actual small-model generation experiment**. That run is now frozen with **provisional author claim annotations**; the generator failed all six strict abstention cases. **There is no independent factuality validation, deployed RAG answer endpoint or production accuracy claim.** See [the real-generation experiment](docs/GENERATION_EXPERIMENT.md), [provisional claim review](docs/GENERATED_CLAIM_REVIEW.md) and [roadmap](#roadmap).
 
 ## Why this exists
 
@@ -20,11 +20,12 @@ The sample corpus is wholly synthetic. It describes fictional webhook operations
 - **Claim benchmark:** 24 authored claim-to-span pairs (12 supported, 12 not), fingerprint-bound verdict evaluation, confusion matrix, an unsafe citation-presence baseline **and a measured pinned ONNX NLI baseline**. The model makes four errors, including one false approval of a contradiction; it is not a safety gate.
 - **Composed-answer benchmark:** 21 deliberately authored response fixtures tied to those atomic claims. Checks exact citation alignment, minimum required facts and abstention, and compares an oracle, an unsafe citation baseline and actual NLI verdicts. These **pre-annotated fixtures** are not graded real model outputs.
 - **Real generation experiment:** separately run a revision- and SHA-256-pinned 135M-parameter ONNX model on 12 source-bound prompts, preserve its raw responses and evaluate **only** exact abstention and citation-marker syntax. Hand-selected source passages are not live retrieval. No automatic atomic-claim extraction or generated-answer factuality grade exists.
+- **Frozen-output claim review:** preserve the exact 12 real CPU outputs from GitHub, partition every character into labeled claim/non-claim spans and record 15 provisional **project-authored** claim assessments. The verifier checks text/source integrity, **not whether those judgments are true**; there are zero independent reviewers.
 - **Semantic experiment:** optional, commit-pinned local ONNX embeddings with pgvector exact cosine and RRF, compared against the same goldens; no paid model API.
 - **Testing:** pure unit tests plus PostgreSQL integration tests; CI fails on missing/skipped DB coverage.
 - **Future:** independently reviewed real-output claims and abstention, bounded retrieval-linked answers with citations, comparative model-output evaluation and a dashboard.
 
-See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md), [Evidence protocol](docs/EVIDENCE_PROTOCOL.md), [Claim-evaluation protocol](docs/CLAIM_EVALUATION.md), [Composed-answer protocol](docs/ANSWER_EVALUATION.md), [Actual generation experiment](docs/GENERATION_EXPERIMENT.md) and [Decisions](docs/DECISIONS.md) for details and limits.
+See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md), [Evidence protocol](docs/EVIDENCE_PROTOCOL.md), [Claim-evaluation protocol](docs/CLAIM_EVALUATION.md), [Composed-answer protocol](docs/ANSWER_EVALUATION.md), [Actual generation experiment](docs/GENERATION_EXPERIMENT.md), [Frozen-output claim review](docs/GENERATED_CLAIM_REVIEW.md) and [Decisions](docs/DECISIONS.md) for details and limits.
 
 ## Quick start — full local demo stack
 
@@ -152,6 +153,10 @@ The [first real-generation experiment](docs/GENERATION_EXPERIMENT.md) runs a pub
 
 **Observed on [GitHub Actions #44585749946](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44585749946), commit `45adfdda6c64b2a33cf2d1466f0018c5f1b21462`:** all **five jobs passed**, including 144 Python tests (136 unit, **8 real PostgreSQL integration, 0 skipped**), HTTP Compose, two earlier ONNX research jobs and this new generator. The archived raw-output report showed **0/6 correct strict abstentions** on unsupported questions, only **3/12 structurally valid citation outcomes**, and **one answer with invented citation markers**. Actual generations also supplied a made-up SQL deletion instruction and unsupported numeric details. Those failures are visible even though CI is green: the job tests reproducibility and honest reporting, **not model acceptance**. The citation result is a syntax check, *not* a measure of answer factuality or completeness.
 
+### Frozen real-answer claims — author review, no independent validation
+
+The [claim review protocol](docs/GENERATED_CLAIM_REVIEW.md) freezes the exact prompt/output bytes from [CI #44588063650](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44588063650) into versioned synthetic JSON. Every character of all 12 outputs is covered by a claim or narrowly permitted non-claim segment. The **15 provisional author-labeled claim spans** include **8 supported, 1 contradicted and 6 not established** by the excerpts inspected. The contradiction is concrete: the generator asserted a **3-day** retention period when the only source says **30 days**. The labels are **not independently reviewed**; one repetitive, incomplete output also illustrates that full text coverage does **not** prove perfect atomic decomposition. Mutating a frozen output, omitting a segment or referencing an unseen source fails integrity tests. CI runs this deterministic review separately from real model inference.
+
 ## Current endpoints
 
 | Method | Path | Behavior |
@@ -169,7 +174,7 @@ This is an intentionally **non-agentic** first checkpoint. A search result is no
 2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report and pinned lexical regression baseline. **Verified with PostgreSQL 17 in CI.**
 3. **Semantic and hybrid retrieval:** pinned ONNX adapter, exact pgvector search and rank fusion; **measured with a real CPU model in CI**.
 4. **Evidence and generation:** exact evidence spans, pre-annotated composition and an **isolated real CPU generator experiment** now exist. The score gate failed near-miss cases, the experimental NLI judge falsely approved a contradiction, and the tiny generator failed all six strict abstention checks. None is deployable as an answerability classifier.
-5. **Answer evals:** the pre-annotated composition harness and raw generation artifact are implemented. Next: **exhaustive, independently reviewed atomic claims** extracted from the frozen model outputs, end-to-end evidence alignment, a sealed evaluation set and quantitative reliability/regression reporting.
+5. **Answer evals:** pre-annotated compositions, a real generation artifact and a **frozen provisional author claim review** are implemented. Next: **independent exhaustive claim annotation and adjudication**, complete evidence alignment, a sealed evaluation set and quantitative reliability/regression reporting.
 6. **Dashboard and case study:** compare failures, latency/tokens/cost, dockerized end-to-end demo.
 
 No production deployment, real user credentials, private data or paid LLM usage is implied by this roadmap. A public deployment would require separate authentication, rate limiting, privacy and security review.
