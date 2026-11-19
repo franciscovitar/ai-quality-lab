@@ -129,16 +129,34 @@ class PinnedNliCrossEncoder:
 
     def infer(self, claims: LockedClaims, *, batch_size: int = 4) -> list[NliObservation]:
         """Evaluate full quote–hypothesis pairs without silent token truncation."""
+        return self.infer_pairs(
+            [
+                (case.case_id, premise_for_claim(claims, case.case_id), case.claim)
+                for case in claims.data.cases
+            ],
+            batch_size=batch_size,
+        )
+
+    def infer_pairs(
+        self, pairs: Sequence[tuple[str, str, str]], *, batch_size: int = 4
+    ) -> list[NliObservation]:
+        """Infer caller-prepared (ID, premise, hypothesis) triples; never supply labels."""
         if not 1 <= batch_size <= 32:
             raise ValueError("Batch size must be from 1 to 32")
+        if len({item[0] for item in pairs}) != len(pairs):
+            raise ValueError("NLI pair IDs must be unique")
+        if any(
+            not case_id or not premise.strip() or not hypothesis.strip()
+            for case_id, premise, hypothesis in pairs
+        ):
+            raise ValueError("NLI pairs require ID, inspected premise and claim hypothesis")
         import numpy as np
 
         observations: list[NliObservation] = []
-        cases = claims.data.cases
-        for start in range(0, len(cases), batch_size):
-            batch = cases[start : start + batch_size]
+        for start in range(0, len(pairs), batch_size):
+            batch = pairs[start : start + batch_size]
             encodings = self._tokenizer.encode_batch(
-                [(premise_for_claim(claims, case.case_id), case.claim) for case in batch]
+                [(premise, hypothesis) for _, premise, hypothesis in batch]
             )
             # Padding is enabled, but *truncation is not*. Overlong inputs are an error.
             sizes = [sum(encoding.attention_mask) for encoding in encodings]
@@ -157,11 +175,11 @@ class PinnedNliCrossEncoder:
             logits = self._session.run(["logits"], inputs)[0]
             if logits.shape != (len(batch), len(EXPECTED_LABELS)):
                 raise ValueError("NLI model returned an unexpected batch/logit shape")
-            for case, token_count, values in zip(batch, sizes, logits, strict=True):
+            for (case_id, _, _), token_count, values in zip(batch, sizes, logits, strict=True):
                 scores = tuple(float(value) for value in values)
                 observations.append(
                     NliObservation(
-                        case_id=case.case_id,
+                        case_id=case_id,
                         nli_label=predicted_nli_label(scores),
                         token_count=token_count,
                         logits=scores,

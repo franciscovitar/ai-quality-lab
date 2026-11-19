@@ -163,7 +163,8 @@ jobs:
       - name: Download only the pinned ONNX model and evaluate authored claims
         run: |
           uv run --locked --extra semantic python -m aql.nli_runner \
-            --download-model --answer-dataset data/evals/answer_cases_v1.json
+            --download-model --answer-dataset data/evals/answer_cases_v1.json \
+            --generated-claims
       - name: Preserve raw predictions and observed confusion matrix
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

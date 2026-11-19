@@ -70,3 +70,11 @@
 
 **Pre-CI local observation:** the original 12 outputs from [Actions #44588063650](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44588063650) yield 15 author-marked claim spans: 8 supported, 1 explicitly contradicted (`R106`, 3 instead of 30 days), and 6 not established. `R108` proves that a claim can be labeled supported yet fail to answer the question. The incomplete `R104` is a declared segmentation limitation. This classification is provisional until independent reviewers adjudicate it. See [the review protocol](GENERATED_CLAIM_REVIEW.md).
 
+## ADR-015: Compare real generated claims with pinned NLI, retaining a deliberately unsafe answer baseline
+
+**Accepted for an off-API research comparison only; rejected as a deployable release gate.** Reuse the already-pinned ONNX cross-encoder to score *actual generator outputs* segmented by provisional author review. Use each original, exact source quote as premise and the raw claim text as hypothesis, without the author's verdict, rationale or question answerability label in the model input. Verify one model observation per uniquely identified claim occurrence and record three-way logits/token counts. Binary `entailment` is compared against author support; other labels count as lack of support. This is explicitly **agreement against project-authored, non-independent labels**, not factuality accuracy.
+
+**Keep a negative control.** A policy that accepts an entire answer whenever every extracted claim is entailed will incorrectly approve a truthful *non-answer* (`R108`) and an answer with fabricated citation markers (`R105`). The policy therefore remains a measured failure demonstration, not an API feature. No tuning on the public examples, paid model, live retrieval integration or new safety promise is included.
+
+**First local model observation:** **14/15** claim judgments match provisional author labels. The sole disagreement is `R102/C01`, author-supported but assigned *neutral* by NLI. At answer level the unsafe rule accepts **4/12** responses, including **1/6 unanswerable** cases (`R108`). The model correctly outputs *contradiction* for the 3-versus-30-day case `R106`; this does not repair the full-answer failure. See [full per-case experiment and limitations](GENERATED_NLI_EXPERIMENT.md). The independent-review count remains **zero**.
+

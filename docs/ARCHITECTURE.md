@@ -35,6 +35,8 @@ The [real-generation experiment](GENERATION_EXPERIMENT.md) is a **different, iso
 
 For the next experiment, the [frozen-output review](GENERATED_CLAIM_REVIEW.md) retains **byte-identical generated JSON** from a named GitHub runner, then partitions each real answer into human-authored claim and non-claim segments. The verifier rebuilds the original source prompts, checks model/provenance SHA-256 and exact response text coverage, and rejects a claim attributed to a source snippet not shown to the generator. Review labels are explicitly `project_author_provisional` with **zero independent reviewers**, so this path is an integrity-audited annotation scaffold, not a learned classifier or a verified answer-quality gate.
 
+The separate [generated-claim NLI comparison](GENERATED_NLI_EXPERIMENT.md) feeds those frozen claim spans and their exact inspected quotes into the same pinned CPU cross-encoder used on the earlier 24 authored pairs. No labels or rationales go into inference. The diagnostic retains per-claim logits and disagreements with provisional author verdicts; an additional **deliberately unsafe** all-claims-entailed negative control demonstrates that a source-supported assertion can still be an incomplete answer, and that NLI cannot detect fabricated citation markers it was never shown. Neither decision path is exposed via HTTP.
+
 ## Trust and failure boundaries
 
 - Corpus data is synthetic, but still treated as untrusted instructions.
