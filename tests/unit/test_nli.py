@@ -135,6 +135,48 @@ def test_runner_scores_only_supplied_model_output_and_records_provenance(
     assert seen == [False, False, True]
 
 
+def test_nli_runner_optionally_scores_preannotated_answers_from_same_predictions(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from aql import nli_runner
+
+    class FakeModel:
+        model_key = MODEL_KEY
+
+        def __init__(self, *, allow_download: bool):
+            assert allow_download is False
+
+        def infer(self, claims):
+            return [
+                NliObservation(case.case_id, "entailment", 32, (0.0, 1.0, 0.0))
+                for case in claims.data.cases
+            ]
+
+    monkeypatch.setattr(nli_runner, "PinnedNliCrossEncoder", FakeModel)
+    answer_output = tmp_path / "answer-report.json"
+    claim_output = tmp_path / "nli-report.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "aql.nli_runner",
+            "--output",
+            str(claim_output),
+            "--answer-dataset",
+            str(ROOT / "data/evals/answer_cases_v1.json"),
+            "--answer-output",
+            str(answer_output),
+        ],
+    )
+    main()
+    claim_report = json.loads(claim_output.read_bytes())
+    answer_report = json.loads(answer_output.read_bytes())
+    assert claim_report["summary"]["false_supported_rate"] == 1.0
+    assert answer_report["summary"]["false_approvals"] == 2
+    assert answer_report["model"] == MODEL_KEY
+    assert answer_report["manual_claim_segmentation"] is True
+
+
 def test_actual_model_requires_explicit_opt_in_and_optional_dependencies() -> None:
     assert MODEL_KEY.endswith("/onnx/model.onnx")
     assert PinnedNliCrossEncoder.__init__.__kwdefaults__ == {

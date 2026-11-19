@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 
+from aql.answer_evaluation import evaluate_answers, load_answers
 from aql.claim_evaluation import evaluate_claim_predictions, load_claims
 from aql.claim_runner import DEFAULT_CLAIMS, DEFAULT_EVIDENCE, DEFAULT_RETRIEVAL
 from aql.eval_runner import DEFAULT_CORPUS
@@ -18,6 +19,12 @@ def main() -> None:
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     parser.add_argument("--output", type=Path, default=Path("test-results/nli/nli-report.json"))
     parser.add_argument("--download-model", action="store_true")
+    parser.add_argument("--answer-dataset", type=Path)
+    parser.add_argument(
+        "--answer-output",
+        type=Path,
+        default=Path("test-results/nli/answer-composition-model-report.json"),
+    )
     args = parser.parse_args()
 
     goldens = load_claims(args.dataset, args.evidence, args.retrieval, args.corpus)
@@ -40,6 +47,23 @@ def main() -> None:
     report["model_observations"] = [observation.as_dict() for observation in observations]
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(report_json(report), encoding="utf-8")
+
+    if args.answer_dataset is not None:
+        answers = load_answers(args.answer_dataset, goldens)
+        answer_report = evaluate_answers(
+            answers,
+            [observation.prediction for observation in observations],
+            strategy="pinned-nli-on-preannotated-answer-compositions-v1",
+        )
+        answer_report["model"] = model.model_key
+        args.answer_output.parent.mkdir(parents=True, exist_ok=True)
+        args.answer_output.write_text(report_json(answer_report), encoding="utf-8")
+        s = answer_report["summary"]
+        print(
+            f"Composed answers {s['decision_agreement']}/{s['cases']} decisions match "
+            f"authored reference, false approvals={s['false_approvals']}, "
+            f"false rejections={s['false_rejections']} [not real generated answers]"
+        )
 
     summary = report["summary"]
     print(

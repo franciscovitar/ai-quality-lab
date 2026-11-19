@@ -62,6 +62,8 @@ jobs:
             --output test-results/retrieval-report.json
       - name: Measure why authentic citations do not guarantee claim support
         run: uv run --locked python -m aql.claim_runner --output test-results/claim-support-report.json
+      - name: Score pre-annotated answer compositions and citation-only negative control
+        run: uv run --locked python -m aql.answer_runner --output test-results/answer-composition-report.json
       - name: Preserve synthetic evaluation report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -69,6 +71,7 @@ jobs:
           path: |
             test-results/retrieval-report.json
             test-results/claim-support-report.json
+            test-results/answer-composition-report.json
           if-no-files-found: error
           retention-days: 14
 
@@ -155,7 +158,9 @@ jobs:
       - name: Install locked CPU ONNX dependencies (no Torch)
         run: uv sync --locked --extra semantic
       - name: Download only the pinned ONNX model and evaluate authored claims
-        run: uv run --locked --extra semantic python -m aql.nli_runner --download-model
+        run: |
+          uv run --locked --extra semantic python -m aql.nli_runner \
+            --download-model --answer-dataset data/evals/answer_cases_v1.json
       - name: Preserve raw predictions and observed confusion matrix
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

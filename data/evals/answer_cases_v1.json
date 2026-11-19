@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "dataset_id": "synthetic-ops-answer-compositions-v1",
+  "claims_dataset_sha256": "1c6dc7fb386aa6da7f506caf98fc40788bfa52371688de8349c13b1ed42b53c6",
+  "expected_answers": 21,
+  "label_provenance": "Project-authored answer compositions with pre-annotated atomic claims and reference source spans; not actual LLM outputs, not blind or independently reviewed",
+  "question_requirements": [
+    {"question_ref":"R101","required_claim_ids":["C001"]},
+    {"question_ref":"R102","required_claim_ids":["C004","C006"]},
+    {"question_ref":"R103","required_claim_ids":["C008","C020"]},
+    {"question_ref":"R104","required_claim_ids":["C010"]},
+    {"question_ref":"R105","required_claim_ids":["C014"]},
+    {"question_ref":"R106","required_claim_ids":["C016"]}
+  ],
+  "answers": [
+    {"answer_id":"A001","question_ref":"R101","scenario":"complete supported retry policy","mode":"answer","statements":[{"claim_id":"C001","citations":[{"case_id":"R101","span_index":0}]}]},
+    {"answer_id":"A002","question_ref":"R101","scenario":"genuine citation with invented jitter percentage","mode":"answer","statements":[{"claim_id":"C001","citations":[{"case_id":"R101","span_index":0}]},{"claim_id":"C002","citations":[{"case_id":"R101","span_index":0}]}]},
+    {"answer_id":"A003","question_ref":"R102","scenario":"complete incident chronology and deduplication","mode":"answer","statements":[{"claim_id":"C004","citations":[{"case_id":"R102","span_index":0}]},{"claim_id":"C006","citations":[{"case_id":"R102","span_index":1}]}]},
+    {"answer_id":"A004","question_ref":"R102","scenario":"wrong chronology and incomplete answer","mode":"answer","statements":[{"claim_id":"C005","citations":[{"case_id":"R102","span_index":0}]},{"claim_id":"C006","citations":[{"case_id":"R102","span_index":1}]}]},
+    {"answer_id":"A005","question_ref":"R103","scenario":"supported but omits two operational checks","mode":"answer","statements":[{"claim_id":"C008","citations":[{"case_id":"R103","span_index":0}]}]},
+    {"answer_id":"A006","question_ref":"R103","scenario":"complete on-call checks","mode":"answer","statements":[{"claim_id":"C008","citations":[{"case_id":"R103","span_index":0}]},{"claim_id":"C020","citations":[{"case_id":"R103","span_index":0}]}]},
+    {"answer_id":"A007","question_ref":"R104","scenario":"complete replay audit requirements","mode":"answer","statements":[{"claim_id":"C010","citations":[{"case_id":"R104","span_index":0}]}]},
+    {"answer_id":"A008","question_ref":"R104","scenario":"unnecessary abstention despite available evidence","mode":"abstain","statements":[]},
+    {"answer_id":"A009","question_ref":"R105","scenario":"complete security boundary with both source spans","mode":"answer","statements":[{"claim_id":"C014","citations":[{"case_id":"R105","span_index":0},{"case_id":"R105","span_index":1}]}]},
+    {"answer_id":"A010","question_ref":"R105","scenario":"true security claim but citation points at another document","mode":"answer","statements":[{"claim_id":"C012","citations":[{"case_id":"R102","span_index":0}]}]},
+    {"answer_id":"A011","question_ref":"R106","scenario":"correct training metadata retention","mode":"answer","statements":[{"claim_id":"C016","citations":[{"case_id":"R106","span_index":0}]}]},
+    {"answer_id":"A012","question_ref":"R106","scenario":"unsupported transfer of retention policy to production","mode":"answer","statements":[{"claim_id":"C017","citations":[{"case_id":"R106","span_index":0}]}]},
+    {"answer_id":"A013","question_ref":"R107","scenario":"abstain on unknown exact multiplier","mode":"abstain","statements":[]},
+    {"answer_id":"A014","question_ref":"R108","scenario":"abstain on missing jitter percentage","mode":"abstain","statements":[]},
+    {"answer_id":"A015","question_ref":"R108","scenario":"invent jitter percentage instead of abstaining","mode":"answer","statements":[{"claim_id":"C002","citations":[{"case_id":"R101","span_index":0}]}]},
+    {"answer_id":"A016","question_ref":"R109","scenario":"abstain on unknown named approver","mode":"abstain","statements":[]},
+    {"answer_id":"A017","question_ref":"R110","scenario":"abstain on unsupported deletion SQL","mode":"abstain","statements":[]},
+    {"answer_id":"A018","question_ref":"R111","scenario":"abstain on unknown exact queue depth","mode":"abstain","statements":[]},
+    {"answer_id":"A019","question_ref":"R112","scenario":"abstain on absent production secret","mode":"abstain","statements":[]},
+    {"answer_id":"A020","question_ref":"R112","scenario":"invent production secret status with authentic attack citation","mode":"answer","statements":[{"claim_id":"C015","citations":[{"case_id":"R105","span_index":1}]}]},
+    {"answer_id":"A021","question_ref":"R102","scenario":"complete but internally contradictory timeline","mode":"answer","statements":[{"claim_id":"C004","citations":[{"case_id":"R102","span_index":0}]},{"claim_id":"C005","citations":[{"case_id":"R102","span_index":0}]},{"claim_id":"C006","citations":[{"case_id":"R102","span_index":1}]}]}
+  ]
+}
