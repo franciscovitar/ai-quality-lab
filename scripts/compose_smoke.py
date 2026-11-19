@@ -31,7 +31,7 @@ def wait_for_ready(timeout_seconds: int = 90) -> None:
         try:
             if get_json("/ready") == {"status": "ready"}:
                 return
-        except (HTTPError, URLError, TimeoutError, ValueError):
+        except (HTTPError, URLError, TimeoutError, ConnectionResetError, ValueError):
             pass
         time.sleep(2)
     raise TimeoutError(f"API did not become ready within {timeout_seconds}s")
