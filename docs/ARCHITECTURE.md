@@ -27,6 +27,8 @@ The retrieval evaluator scores current, **version-qualified documents** after de
 
 A distinct [evidence-level evaluator](EVIDENCE_PROTOCOL.md) checks labeled **exact quotes and character offsets** against the hash-locked current source corpus and the deterministic chunk UUIDs. Positive questions can require multiple spans from the same document; an individual document match must not hide partial supporting evidence. Citation validation additionally requires a quote to lie within a **retrieved** current chunk and cover a project-labeled anchor. It does **not** infer entailment of unrestricted model prose: actual answer correctness is still unimplemented.
 
+A [separate claim-pair scorer](CLAIM_EVALUATION.md) now accepts verdicts from an external future judge and compares them to 24 version-locked authored `entailed`/`not_entailed` judgments. The first deliberately unsafe baseline declares all authentic citations supportive, exposing false-support errors even though every quote is real. The scorer itself **does not determine** if a claim is entailed; running it against an oracle or citation-only baseline is not a measured LLM capability.
+
 ## Trust and failure boundaries
 
 - Corpus data is synthetic, but still treated as untrusted instructions.

@@ -57,7 +57,7 @@ Both multi-span examples (`R102`, `R105`) had all their annotated passages recov
 ## What would justify the next step
 
 1. Independent review of reference answers **and** supporting quotes, ideally with disagreement/adjudication records.
-2. Explicit claim-level labels and counterexamples (correct quote, wrong inference; mixed supported/unsupported claims; plausible but missing numeric details; stale versions and adversarial content).
-3. A separately evaluated entailment/abstention grader with uncertainty reporting and a frozen held-out sample; only then introduce bounded cited-answer generation.
+2. Explicit claim-level labels and counterexamples now have a first [24-pair authored benchmark](CLAIM_EVALUATION.md), but **independent review and a genuinely new holdout are still needed**.
+3. A **real** entailment/abstention grader evaluated against those reviewed labels, with uncertainty reporting and a sealed sample; only then introduce bounded cited-answer generation.
 
 Research informing the separation: [Attributable to Identified Sources (AIS)](https://aclanthology.org/2023.cl-4.2/), [AttributionBench](https://aclanthology.org/2024.findings-acl.886/), [Correctness is not Faithfulness in RAG Attributions](https://arxiv.org/abs/2412.18004), and [OpenAI evaluation best practices](https://developers.openai.com/api/docs/guides/evaluation-best-practices). These are methodology references, not claims that the current implementation matches the papers' full evaluation protocols.

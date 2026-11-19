@@ -38,3 +38,7 @@
 
 **Measured:** [Actions #44574024515](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515) retrieved all eight project-labeled spans with exact semantic search, but the score-gated retriever emitted candidates for every unanswerable challenge. This does not change the decision: structural authenticity and coverage are prerequisites, not an entailment or answerability certificate.
 
+## ADR-010: Bind claim labels to source spans and score supplied verdicts
+
+**Accepted as a benchmark scaffold, not as a claim-entailment model.** Exactly 24 authored atomic claim-to-evidence pairs include same-citation positives and near-miss negatives, with corpus/retrieval/evidence/claim SHA provenance. The evaluator checks that the prediction set is complete, computes class-level confusion and false-supported rate, and can accept an external future judge's verdict file. The built-in citation-presence baseline intentionally declares every claim `entailed`: its expected 12/24 accuracy and 12/12 false-supported negatives demonstrate that authentic citations do not imply support. This deterministic negative control must not be called model accuracy. A genuinely independent annotated holdout and an evaluated entailment model are required before using the harness to justify actual generated answers. See [protocol](CLAIM_EVALUATION.md).
+

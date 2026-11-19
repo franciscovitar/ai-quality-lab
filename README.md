@@ -17,11 +17,12 @@ The sample corpus is wholly synthetic. It describes fictional webhook operations
 - **Synthetic corpus:** source versions, hashes, paragraph offsets and stable IDs; never update a source silently.
 - **Golden retrieval sets:** 16 original cases plus a separately reported 12-case near-miss challenge; current-version labels, positive/negative outcomes, split/tag slices and hash-locked corpus provenance.
 - **Evidence annotations:** eight exact source spans for six challenge positives, six explicit abstention labels and a strict structured citation-integrity evaluator. This verifies quote provenance and required-span coverage, **not free-form LLM entailment**.
+- **Claim benchmark:** 24 authored claim-to-span pairs (12 supported, 12 not), fingerprint-bound verdict evaluation, confusion matrix and a deliberately unsafe citation-presence baseline. **A real entailment judge is still missing.**
 - **Semantic experiment:** optional, commit-pinned local ONNX embeddings with pgvector exact cosine and RRF, compared against the same goldens; no paid model API.
 - **Testing:** pure unit tests plus PostgreSQL integration tests; CI fails on missing/skipped DB coverage.
 - **Future:** independently reviewed claim-level entailment and abstention, bounded RAG answers with citations, model-output eval harness, comparison dashboard in Next.js.
 
-See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md), [Evidence protocol](docs/EVIDENCE_PROTOCOL.md) and [Decisions](docs/DECISIONS.md) for details and limits.
+See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md), [Evidence protocol](docs/EVIDENCE_PROTOCOL.md), [Claim-evaluation protocol](docs/CLAIM_EVALUATION.md) and [Decisions](docs/DECISIONS.md) for details and limits.
 
 ## Quick start — full local demo stack
 
@@ -126,6 +127,10 @@ The [score-gate CI run #44566570399](https://github.com/franciscovitar/ai-qualit
 The separate [evidence protocol](docs/EVIDENCE_PROTOCOL.md) adds eight project-authored answer-bearing quotes across the six challenge positives. Each quote is anchored to a source version and exact character offsets, and the loader verifies it against the hash-locked corpus and the stable chunk ID. The experimental runner now reports **exact span coverage** separately from document recall for lexical, semantic and score-gated retrieval. A structured decision/citation grader rejects fake, stale, unretrieved or irrelevant quotes and flags missing required spans. These are **deterministic source-integrity checks**, not an automatic judge of a generated claim's meaning, confidence or faithfulness. The current HTTP API remains lexical-only, with no answer generator.
 
 **Measured in [Actions #44574024515](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515), commit `adae4ecc513ed946efd3a9e122e2b4f09f6a55e3`:** all three jobs passed with **74 tests (66 unit, 8 PostgreSQL integration), 0 skipped** and real HTTP Compose. On the 12-case challenge, FTS retrieved **0/8** labeled supporting spans, while exact semantic and score-gated retrieval found **8/8**, including both required passages for the two multi-fact cases. **But neither semantic strategy returned zero hits on any of the six unanswerable questions (0/6)**; FTS returned no hits on 6/6. This is a small, purpose-built dataset: strong evidence retrieval and failed rejection coexist. The per-case reports and dataset hash are stored in the run's `semantic-retrieval-experiment` artifact. No generated answer, entailment or citation faithfulness was tested.
+
+### Claim-to-evidence evaluation (deterministic benchmark, no judge yet)
+
+The [claim benchmark](docs/CLAIM_EVALUATION.md) adds **24 authored claim/quote pairs** that deliberately mix supported and unsupported statements using the **same authentic source passages**. Every label is tied by SHA-256 through the evidence dataset to the unchanged source corpus. The CLI scores *supplied* `entailed`/`not_entailed` verdicts, rejects missing or duplicated predictions, and reports false-supported rate and a full confusion matrix. Its initial **citation-only negative control** predicts every claim is supported: it correctly classifies **12/24**, but falsely marks **12/12 unsupported claims as supported**. Those are baseline arithmetic on authored labels, **not model-generated judgments or a verified entailment system**. CI runs and archives the negative-control report separately from the retrieval metrics.
 
 ## Current endpoints
 

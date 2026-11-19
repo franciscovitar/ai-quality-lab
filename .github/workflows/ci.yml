@@ -60,11 +60,15 @@ jobs:
           uv run --locked python -m aql.eval_runner \
             --compare data/evals/baselines/postgres_fts_v1.json \
             --output test-results/retrieval-report.json
+      - name: Measure why authentic citations do not guarantee claim support
+        run: uv run --locked python -m aql.claim_runner --output test-results/claim-support-report.json
       - name: Preserve synthetic evaluation report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: retrieval-evaluation
-          path: test-results/retrieval-report.json
+          path: |
+            test-results/retrieval-report.json
+            test-results/claim-support-report.json
           if-no-files-found: error
           retention-days: 14
 
