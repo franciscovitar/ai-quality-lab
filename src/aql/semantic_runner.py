@@ -8,17 +8,20 @@ from aql.database import open_database
 from aql.embeddings import MODEL_KEY, PinnedFastEmbed
 from aql.eval_runner import DEFAULT_CORPUS, DEFAULT_DATASET
 from aql.evaluation import evaluate_retrieval, find_regressions, load_dataset, report_json
+from aql.evidence import evaluate_span_retrieval, load_evidence
 from aql.evidence_gate import calibrate_dev_negatives, gated_hits
 from aql.retrieval import fuse_rrf, search_lexical, search_semantic
 from aql.vector_index import assert_index_complete, index_embeddings
 
 DEFAULT_STRESS_DATASET = Path("data/evals/retrieval_stress_v1.json")
+DEFAULT_EVIDENCE_DATASET = Path("data/evals/evidence_stress_v1.json")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     parser.add_argument("--stress-dataset", type=Path, default=DEFAULT_STRESS_DATASET)
+    parser.add_argument("--evidence-dataset", type=Path, default=DEFAULT_EVIDENCE_DATASET)
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--output-dir", type=Path, default=Path("test-results/semantic"))
@@ -31,6 +34,7 @@ def main() -> None:
 
     goldens = load_dataset(args.dataset, args.corpus)
     stress_goldens = load_dataset(args.stress_dataset, args.corpus)
+    evidence = load_evidence(args.evidence_dataset, args.stress_dataset, args.corpus)
     overlap = {case.question for case in goldens.data.cases} & {
         case.question for case in stress_goldens.data.cases
     }
@@ -61,6 +65,10 @@ def main() -> None:
         }
         raw_stress_semantic = {
             case.question: search_semantic(connection, vectors[case.question], MODEL_KEY, 10)
+            for case in stress_goldens.data.cases
+        }
+        raw_stress_lexical = {
+            case.question: search_lexical(connection, case.question, 10)
             for case in stress_goldens.data.cases
         }
         # Calibrate ONLY against the original dev negatives. Challenge-set labels
@@ -112,6 +120,26 @@ def main() -> None:
                 strategy=f"frozen-original-dev-gate:{MODEL_KEY}",
             ),
         }
+        span_reports = {
+            "stress_spans_lexical": evaluate_span_retrieval(
+                evidence,
+                lambda q, k: raw_stress_lexical[q][:k],
+                top_k=args.top_k,
+                strategy="stress-lexical-exact-span",
+            ),
+            "stress_spans_semantic": evaluate_span_retrieval(
+                evidence,
+                stress_semantic,
+                top_k=args.top_k,
+                strategy=f"stress-cosine-exact-span:{MODEL_KEY}",
+            ),
+            "stress_spans_gated": evaluate_span_retrieval(
+                evidence,
+                stress_gated,
+                top_k=args.top_k,
+                strategy=f"stress-score-gated-exact-span:{MODEL_KEY}",
+            ),
+        }
 
     # Preserve the proven lexical floor: the semantic run must not change FTS.
     baseline = json.loads(Path("data/evals/baselines/postgres_fts_v1.json").read_text())
@@ -122,10 +150,13 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     for name, report in reports.items():
         (args.output_dir / f"{name}.json").write_text(report_json(report), encoding="utf-8")
+    for name, report in span_reports.items():
+        (args.output_dir / f"{name}.json").write_text(report_json(report), encoding="utf-8")
 
     comparison = {
         "dataset_sha256": goldens.dataset_sha256,
         "stress_dataset_sha256": stress_goldens.dataset_sha256,
+        "evidence_dataset_sha256": evidence.dataset_sha256,
         "model_key": MODEL_KEY,
         "top_k_chunks": args.top_k,
         "index_stats": {
@@ -143,6 +174,7 @@ def main() -> None:
             "note": "Top-1 cosine score proxy only; no evidence entailment or LLM abstention test",
         },
         "metrics": {name: report["summary"] for name, report in reports.items()},
+        "span_metrics": {name: report["summary"] for name, report in span_reports.items()},
         "top1_semantic_scores": {
             case.case_id: {
                 "split": case.split,
@@ -194,6 +226,12 @@ def main() -> None:
             f"{name} Recall@{args.top_k}={report['summary']['recall_at_k']} "
             f"MRR@{args.top_k}={report['summary']['mrr_at_k']} "
             f"no-hit={report['summary']['unanswerable_no_hit_rate']}"
+        )
+    for name, report in span_reports.items():
+        print(
+            f"{name} span-recall@{args.top_k}={report['summary']['span_recall_at_k']} "
+            f"full-coverage={report['summary']['full_span_coverage_rate']} "
+            f"negative-no-hit={report['summary']['unanswerable_no_hit_rate']}"
         )
     print(f"Exact vector model: {MODEL_KEY} | comparison written to {args.output_dir}")
 

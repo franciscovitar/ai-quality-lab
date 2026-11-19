@@ -15,12 +15,13 @@ The sample corpus is wholly synthetic. It describes fictional webhook operations
 - **Python/FastAPI:** explicit API contracts; retrieval and evaluation will remain inspectable modules.
 - **PostgreSQL 17 + pgvector:** relational versions, full-text baseline and a reserved vector column for later hybrid retrieval.
 - **Synthetic corpus:** source versions, hashes, paragraph offsets and stable IDs; never update a source silently.
-- **Golden retrieval set:** 16 synthetic cases with current-version labels, positive/negative outcomes, split/tag slices and hash-locked corpus provenance.
+- **Golden retrieval sets:** 16 original cases plus a separately reported 12-case near-miss challenge; current-version labels, positive/negative outcomes, split/tag slices and hash-locked corpus provenance.
+- **Evidence annotations:** eight exact source spans for six challenge positives, six explicit abstention labels and a strict structured citation-integrity evaluator. This verifies quote provenance and required-span coverage, **not free-form LLM entailment**.
 - **Semantic experiment:** optional, commit-pinned local ONNX embeddings with pgvector exact cosine and RRF, compared against the same goldens; no paid model API.
 - **Testing:** pure unit tests plus PostgreSQL integration tests; CI fails on missing/skipped DB coverage.
 - **Future:** embeddings, RAG answers with citations/abstention, eval harness, comparison dashboard in Next.js.
 
-See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md) and [Decisions](docs/DECISIONS.md) for details and limits.
+See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md), [Evidence protocol](docs/EVIDENCE_PROTOCOL.md) and [Decisions](docs/DECISIONS.md) for details and limits.
 
 ## Quick start — full local demo stack
 
@@ -119,6 +120,10 @@ A second [`retrieval_stress_v1.json`](data/evals/retrieval_stress_v1.json) chall
 The [score-gate CI run #44566570399](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44566570399) verified **54 tests (46 unit, 8 PostgreSQL integration), zero omitted**, and all three jobs passed. The observed dev-derived threshold was **0.3213214374**; gated semantic retrieval retained **12/12 relevant source sets** and returned no results for **4/4 unanswerable cases**. These numbers are preliminary by design: two dev negatives cannot calibrate a reliable real-world acceptance policy. The model comparison artifact records every cosine score and decision.
 
 **The harder questions exposed the limitation.** In [Actions #44567666413](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44567666413), commit `5eaea02184a75c9fb07d4893597dcf68f5c699df`, all three jobs were green (**56 tests: 48 unit + 8 PostgreSQL integration, 0 skipped**, real HTTP Compose, pinned ONNX). Applying the original-dev score cutoff *without tuning on the 12 new questions* retained **6/6 answerable cases but falsely accepted all 6/6 unanswerable near misses**. Even more importantly, the lowest positive top-1 cosine (`0.485`) was **below** the highest negative (`0.699`), so **no single cutoff can classify all 12 correctly**. The artifact preserves each case and score. Green CI means the experiment ran; **it is not an answer-safety pass**. No LLM answer was generated or measured. See [the complete failure analysis](docs/SEMANTIC_EXPERIMENT.md#observed-failure-semantic-proximity-is-not-answer-sufficiency).
+
+### Exact evidence spans and citation integrity
+
+The separate [evidence protocol](docs/EVIDENCE_PROTOCOL.md) adds eight project-authored answer-bearing quotes across the six challenge positives. Each quote is anchored to a source version and exact character offsets, and the loader verifies it against the hash-locked corpus and the stable chunk ID. The experimental runner now reports **exact span coverage** separately from document recall for lexical, semantic and score-gated retrieval. A structured decision/citation grader rejects fake, stale, unretrieved or irrelevant quotes and flags missing required spans. These are **deterministic source-integrity checks**, not an automatic judge of a generated claim's meaning, confidence or faithfulness. The current HTTP API remains lexical-only, with no answer generator.
 
 ## Current endpoints
 
