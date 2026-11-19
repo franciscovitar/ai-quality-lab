@@ -2,7 +2,7 @@
 
 **Engineering a reliable retrieval system is more than getting an LLM to answer a prompt.** AI Quality Lab is a portfolio project for measurable, testable RAG systems: a versioned synthetic corpus, reproducible retrieval experiments, evidence-backed answers, and automated quality gates.
 
-> **Current state — retrieval plus experimental source-integrity checks verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, version-locked goldens, a pinned CPU ONNX model and exact evidence-span coverage have been exercised on a GitHub runner. **There are no LLM-generated answers, claim-level entailment grades or production accuracy claims yet.** See [roadmap](#roadmap).
+> **Current state — retrieval, citation integrity and experimental claim-level NLI verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, version-locked goldens, pinned CPU ONNX embeddings and claim-to-evidence inference have been exercised on a GitHub runner. **There are no LLM-generated answers, independently validated factuality results or production accuracy claims.** See [roadmap](#roadmap).
 
 ## Why this exists
 
@@ -17,7 +17,7 @@ The sample corpus is wholly synthetic. It describes fictional webhook operations
 - **Synthetic corpus:** source versions, hashes, paragraph offsets and stable IDs; never update a source silently.
 - **Golden retrieval sets:** 16 original cases plus a separately reported 12-case near-miss challenge; current-version labels, positive/negative outcomes, split/tag slices and hash-locked corpus provenance.
 - **Evidence annotations:** eight exact source spans for six challenge positives, six explicit abstention labels and a strict structured citation-integrity evaluator. This verifies quote provenance and required-span coverage, **not free-form LLM entailment**.
-- **Claim benchmark:** 24 authored claim-to-span pairs (12 supported, 12 not), fingerprint-bound verdict evaluation, confusion matrix and a deliberately unsafe citation-presence baseline. **A real entailment judge is still missing.**
+- **Claim benchmark:** 24 authored claim-to-span pairs (12 supported, 12 not), fingerprint-bound verdict evaluation, confusion matrix, an unsafe citation-presence baseline **and a measured pinned ONNX NLI baseline**. The model makes four errors, including one false approval of a contradiction; it is not a safety gate.
 - **Semantic experiment:** optional, commit-pinned local ONNX embeddings with pgvector exact cosine and RRF, compared against the same goldens; no paid model API.
 - **Testing:** pure unit tests plus PostgreSQL integration tests; CI fails on missing/skipped DB coverage.
 - **Future:** independently reviewed claim-level entailment and abstention, bounded RAG answers with citations, model-output eval harness, comparison dashboard in Next.js.
@@ -128,11 +128,15 @@ The separate [evidence protocol](docs/EVIDENCE_PROTOCOL.md) adds eight project-a
 
 **Measured in [Actions #44574024515](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515), commit `adae4ecc513ed946efd3a9e122e2b4f09f6a55e3`:** all three jobs passed with **74 tests (66 unit, 8 PostgreSQL integration), 0 skipped** and real HTTP Compose. On the 12-case challenge, FTS retrieved **0/8** labeled supporting spans, while exact semantic and score-gated retrieval found **8/8**, including both required passages for the two multi-fact cases. **But neither semantic strategy returned zero hits on any of the six unanswerable questions (0/6)**; FTS returned no hits on 6/6. This is a small, purpose-built dataset: strong evidence retrieval and failed rejection coexist. The per-case reports and dataset hash are stored in the run's `semantic-retrieval-experiment` artifact. No generated answer, entailment or citation faithfulness was tested.
 
-### Claim-to-evidence evaluation (deterministic benchmark, no judge yet)
+### Claim-to-evidence evaluation — negative control vs. real experimental NLI
 
 The [claim benchmark](docs/CLAIM_EVALUATION.md) adds **24 authored claim/quote pairs** that deliberately mix supported and unsupported statements using the **same authentic source passages**. Every label is tied by SHA-256 through the evidence dataset to the unchanged source corpus. The CLI scores *supplied* `entailed`/`not_entailed` verdicts, rejects missing or duplicated predictions, and reports false-supported rate and a full confusion matrix. Its initial **citation-only negative control** predicts every claim is supported: it correctly classifies **12/24**, but falsely marks **12/12 unsupported claims as supported**. Those are baseline arithmetic on authored labels, **not model-generated judgments or a verified entailment system**. CI runs and archives the negative-control report separately from the retrieval metrics.
 
 **Observed on [Actions #44578890769](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44578890769), commit `9f8a28e349291b04c0b5f2c70e15eafee838b407`:** **91 tests passed** (83 unit + 8 PostgreSQL integration; 0 omitted), with all three jobs green. The archived claim report confirmed the full 24-case confusion matrix: **12/24 accuracy, 12/12 falsely supported negatives, macro-F1 0.333333**. This is an intentionally unsafe *negative control*, not an LLM faithfulness result. The earlier FTS regression baseline and the full Compose HTTP smoke also passed.
+
+The next experiment adds an **actual NLI model**: [`cross-encoder/nli-MiniLM2-L6-H768`](https://huggingface.co/cross-encoder/nli-MiniLM2-L6-H768) at a **full pinned revision**, run locally with ONNX Runtime on CPU. It receives the exact source quote and claim, never a reference answer or rationale. The model's three NLI labels become a binary evidence verdict; there is no gold-based threshold optimization or automatic access from the HTTP API.
+
+**Measured on [Actions #44580522095](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44580522095), commit `8dd0514ab0cee19430fb538540f8f944758c6a84`:** all **4 jobs passed**, **104 tests (96 unit + 8 PostgreSQL integration, zero skips)**, full real Compose HTTP and both optional ONNX jobs. The actual model got **20/24 correct**, macro-F1 **0.832168**, with **1/12 unsupported claims falsely approved** and **3/12 supported claims rejected**. Of particular concern, `C005` reversed a receipt/crash timeline but was still classified as supported. This is promising as a diagnostic experiment, **not a calibrated safety or generalization result**. The full 24-case predictions, logits and confusion matrix are in the `claim-nli-experiment` artifact; see [failure analysis and reproduction](docs/CLAIM_EVALUATION.md#actual-local-nli-experiment--observed-with-failures).
 
 ## Current endpoints
 
@@ -150,8 +154,8 @@ This is an intentionally **non-agentic** first checkpoint. A search result is no
 1. **Foundation:** schema, seed, lexical baseline, reproducible PostgreSQL tests and CI.
 2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report and pinned lexical regression baseline. **Verified with PostgreSQL 17 in CI.**
 3. **Semantic and hybrid retrieval:** pinned ONNX adapter, exact pgvector search and rank fusion; **measured with a real CPU model in CI**.
-4. **Evidence and generation:** reviewed supporting spans, evidence-sufficiency checks, bounded LLM provider adapter, cited answers and explicit abstention. The score-only gate failed the near-miss challenge; it is not deployable as an answerability classifier.
-5. **Answer evals:** deterministic grounding/citation graders, calibrated semantic review, immutable LLM runs and regression reporting.
+4. **Evidence and generation:** independently reviewed supporting spans, evidence-sufficiency checks, bounded LLM provider adapter, cited answers and explicit abstention. The score-only gate failed the near-miss challenge; an experimental NLI judge also falsely approved a contradiction. Neither is deployable as an answerability classifier.
+5. **Answer evals:** generated-answer claim extraction, deterministic grounding/citation graders, broader adjudicated judgments, immutable LLM runs and regression reporting.
 6. **Dashboard and case study:** compare failures, latency/tokens/cost, dockerized end-to-end demo.
 
 No production deployment, real user credentials, private data or paid LLM usage is implied by this roadmap. A public deployment would require separate authentication, rate limiting, privacy and security review.
@@ -167,6 +171,8 @@ The [near-miss challenge run](https://github.com/franciscovitar/ai-quality-lab/a
 The [evidence-span CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515) on commit `adae4ecc513ed946efd3a9e122e2b4f09f6a55e3` passed **74 tests (66 unit, 8 integration; 0 skipped)** and all three jobs. Exact semantic retrieval covered all **8/8** project-labeled supporting spans in six answerable challenges, while the same method still retrieved candidates for **6/6 unanswerable near misses**. This is a span-coverage result, not LLM-answer correctness or generalization.
 
 The [claim-pair benchmark run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44578890769) on commit `9f8a28e349291b04c0b5f2c70e15eafee838b407` passed **91 tests (83 unit, 8 integration; 0 skipped)** and all three jobs. Its archived **citation-presence negative control** falsely supported all twelve unsupported claims despite referring to authentic sources. No model was used to judge entailment, and no model answer accuracy is claimed.
+
+The [pinned NLI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44580522095) on commit `8dd0514ab0cee19430fb538540f8f944758c6a84` passed all **four jobs** and **104 tests (96 unit, 8 PostgreSQL integration, 0 skipped)**. Its independent, real CPU ONNX job classified **20/24 authored claim/quote pairs correctly**, with **1 false approval of 12 unsupported claims** and **3 missed supports**. The full per-case artifact documents `C005`, a false approval of a timeline contradiction. This result evaluates an off-the-shelf NLI classifier against public synthetic labels, not generated answers, real-world factuality or production-grade safety.
 
 ## References
 

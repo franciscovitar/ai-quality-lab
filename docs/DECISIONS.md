@@ -44,3 +44,9 @@
 
 **Measured:** [CI run #44578890769](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44578890769) passed 91 tests (8 real PostgreSQL, zero skips) and archived the negative control with 12/24 correct and 12/12 false supports. Its green result demonstrates reproducible *measurement of failure*, not success at entailment.
 
+## ADR-011: Experiment with a pinned NLI model; do not use it as a release gate
+
+**Accepted for experiment, rejected for production answer validation.** A public, Apache-2.0 cross-encoder trained on SNLI/MultiNLI is downloaded only with explicit opt-in at a full model commit. ONNX Runtime CPU runs the fixed graph with exact, hash-validated source quotes as premise and authored claims as hypothesis; the model sees neither label nor rationale. The pinned config must declare the expected contradiction/entailment/neutral class mapping, and any pair above 256 tokens is rejected instead of silently truncated. Entailment alone counts as evidence support; we do not optimize a threshold on this public 24-case set. The API does not call the model.
+
+**Measured:** [CI run #44580522095](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44580522095), commit `8dd0514ab0cee19430fb538540f8f944758c6a84`, passed 104 tests with zero skips and all four jobs, including the isolated real-model experiment. The model scored 20/24, macro-F1 0.832168, and 1/12 false supports, versus the naive citation baseline's 12/24 and 12/12 false supports. The one false approval `C005` directly reverses an incident timeline, so green CI is **not** an evidence-safety acceptance. No independently adjudicated or sealed test set, latency SLA, answer extraction or generalization claim exists. See [the full failure analysis](CLAIM_EVALUATION.md#actual-local-nli-experiment--observed-with-failures).
+

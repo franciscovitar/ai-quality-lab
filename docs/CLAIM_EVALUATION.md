@@ -1,6 +1,6 @@
 # Claim-to-evidence evaluation — labeled pairs, not an automated entailment judge
 
-The earlier [evidence protocol](EVIDENCE_PROTOCOL.md) showed that a quote can be authentic, current and actually retrieved, without proving that an arbitrary *claim* follows from it. This checkpoint introduces an explicit benchmark for that missing decision. **The benchmark is implemented and scored; no natural-language entailment model is implemented or evaluated yet.**
+The earlier [evidence protocol](EVIDENCE_PROTOCOL.md) showed that a quote can be authentic, current and actually retrieved, without proving that an arbitrary *claim* follows from it. This checkpoint introduces an explicit benchmark for that missing decision, plus an **experimental pinned ONNX natural-language inference (NLI) model**. That model has been measured on authored labels, but is **not** a verified factuality or safety gate.
 
 ## Locked protocol and labels
 
@@ -50,13 +50,49 @@ You can score predictions from a separate, opt-in model adapter **without changi
 }
 ```
 
-The file must include **all 24 IDs** exactly once, and its SHA must match the current claim dataset. The two rows above illustrate the schema only; they are **not a complete runnable predictions file**. Run with `--predictions path/to/predictions.json`; the evaluator refuses stale fingerprints and invalid labels. This interface permits future pinned NLI or LLM judges to be evaluated using the same frozen references. No grade is claimed until a real candidate supplies all verdicts and is run.
+The file must include **all 24 IDs** exactly once, and its SHA must match the current claim dataset. The two rows above illustrate the schema only; they are **not a complete runnable predictions file**. Run with `--predictions path/to/predictions.json`; the evaluator refuses stale fingerprints and invalid labels. This interface also permits other judges to be compared against the same frozen references.
+
+## Actual local NLI experiment — observed, with failures
+
+**Model:** [`cross-encoder/nli-MiniLM2-L6-H768`](https://huggingface.co/cross-encoder/nli-MiniLM2-L6-H768), [Apache-2.0](https://huggingface.co/cross-encoder/nli-MiniLM2-L6-H768/blob/9aa22b250d25a10ac39ab4a6b2bc28213507cb0c/config.json), revision `9aa22b250d25a10ac39ab4a6b2bc28213507cb0c`, **only** `onnx/model.onnx` plus its configuration/tokenizer, executed through ONNX Runtime on CPU. It was originally trained on SNLI/MultiNLI, **not on our operational citations**. The optional download is roughly 329 MB. No hosted inference endpoint, paid API, Torch runtime or label-informed calibration is used.
+
+`src/aql/nli.py` feeds **the exact, validated quote(s) as premise** and **the claim as hypothesis**. It does not include the expected label, error category or project-authored rationale. It checks the pinned model's three-class mapping and token budget before inference; input pairs over 256 tokens are rejected, never silently truncated. The largest raw logit determines `contradiction`/`entailment`/`neutral`. Only `entailment` is mapped to `entailed`; the other two map to `not_entailed`. The archived report retains model identity, per-case logits (not calibrated probabilities), predicted labels and token counts.
+
+**Real GitHub runner evidence:** [Actions #44580522095](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44580522095), code commit `8dd0514ab0cee19430fb538540f8f944758c6a84`. All **four jobs passed**, including the real ONNX experiment, Compose HTTP and **104 tests (96 unit, 8 PostgreSQL integration, 0 skipped)**. The `claim-nli-experiment` artifact contains the actual 24-case report.
+
+| Measured metric, 24 authored pairs | Citation-presence negative control | Pinned ONNX NLI |
+|---|---:|---:|
+| Correct | 12/24 | **20/24** |
+| Accuracy | 50.00% | **83.33%** |
+| Macro-F1 | 0.333333 | **0.832168** |
+| Unsupported claims falsely approved | 12/12 | **1/12** |
+| Supported claims incorrectly rejected | 0/12 | **3/12** |
+
+The NLI confusion matrix was **TP 9, TN 11, FP 1, FN 3**, with **10/12 correct** in each public split. Four mistakes remain:
+
+- `C001` and `C018` are **supported** HTTP 429/503 retry-policy claims; the model classified both `neutral` (false rejections).
+- `C010` is a **supported** replay-audit requirement; the model classified it `contradiction` (false rejection).
+- `C005` reverses the incident timeline: it says the worker crashed *before* storing a receipt, though the quote says *after*. The model classified it `entailment` — a **false approval of a direct contradiction**. This is the most important unsafe error; the raw entailment logit was 1.850035.
+
+These are **not** regression thresholds: deliberately changing prompts/thresholds on the same tiny public set would overfit it. A green experiment job confirms execution and artifact preservation, **not** that the model met a release-quality acceptance criterion.
+
+Reproduce in a local isolated environment with Python 3.13 (download the public pinned snapshot only when you explicitly allow it):
+
+```bash
+uv sync --locked --extra semantic
+uv run --locked --extra semantic python -m aql.nli_runner --download-model
+# Later runs can omit --download-model to use only the cached snapshot:
+uv run --locked --extra semantic python -m aql.nli_runner
+```
+
+This needs no PostgreSQL and writes `test-results/nli/nli-report.json`. The normal service, base dependencies and standard Python tests do not download this model.
 
 ## Limitations and next gate
 
 - The label is an authored judgment, not a mathematical consequence of offsets. Quote provenance is mechanically checked; **semantic entailment labels still need independent human review**.
 - A correct 24-way verdict classifier would **not** prove that a language model generated a factually complete response, used the citation in reasoning, or avoided unsupported extra claims. Those require a separate model-output dataset and claim decomposition.
 - Two labels and 24 samples cannot establish calibrated probabilities, real-world false-accept rates or security guarantees. Do not optimize repeatedly on this public challenge and call its `holdout` score a generalization estimate.
-- A future, opt-in judge needs a fixed model revision, recorded latency/cost if applicable, negative control tests, confusion analysis, and a separately held-out **independently reviewed** benchmark before any generated-answer integration.
+- This ONNX judge is pinned and measured, but has **four case-level mistakes**, including a direct contradiction falsely supported. It is **not enabled in the HTTP API** and no answer is generated. Latency benchmarking, independent adjudication, broader stress testing and a separately sealed test set are still missing.
+- A later model-output evaluator must also measure decomposition/coverage of generated answers, refusal behavior and end-to-end attribution — not just isolated claim pairs.
 
 Relevant methodology: [Attributable to Identified Sources](https://aclanthology.org/2023.cl-4.2/), [AttributionBench](https://aclanthology.org/2024.findings-acl.886/), and [OpenAI evaluation best practices](https://developers.openai.com/api/docs/guides/evaluation-best-practices). This project has not implemented their full grading protocols.
