@@ -66,6 +66,8 @@ jobs:
         run: uv run --locked python -m aql.answer_runner --output test-results/answer-composition-report.json
       - name: Validate frozen real generation and provisional claim-level review
         run: uv run --locked python -m aql.generated_claim_runner --output test-results/generated-claim-review-report.json
+      - name: Prepare label-hidden human review packet without fake reviewer answers
+        run: uv run --locked python -m aql.human_review_runner prepare
       - name: Preserve synthetic evaluation report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -75,6 +77,16 @@ jobs:
             test-results/claim-support-report.json
             test-results/answer-composition-report.json
             test-results/generated-claim-review-report.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve blank source-locked reviewer materials
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: label-hidden-review-packet
+          path: |
+            test-results/human-review/packet.json
+            test-results/human-review/template-reviewer_a.json
+            test-results/human-review/template-reviewer_b.json
           if-no-files-found: error
           retention-days: 14
 

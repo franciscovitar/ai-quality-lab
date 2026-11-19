@@ -37,6 +37,8 @@ For the next experiment, the [frozen-output review](GENERATED_CLAIM_REVIEW.md) r
 
 The separate [generated-claim NLI comparison](GENERATED_NLI_EXPERIMENT.md) feeds those frozen claim spans and their exact inspected quotes into the same pinned CPU cross-encoder used on the earlier 24 authored pairs. No labels or rationales go into inference. The diagnostic retains per-claim logits and disagreements with provisional author verdicts; an additional **deliberately unsafe** all-claims-entailed negative control demonstrates that a source-supported assertion can still be an incomplete answer, and that NLI cannot detect fabricated citation markers it was never shown. Neither decision path is exposed via HTTP.
 
+The [human-review handoff](HUMAN_REVIEW_PROTOCOL.md) is a downstream **offline data export**, not another judge. It derives character offsets for the same frozen author-supplied claim segmentation, includes the original question/answer and exact prompt source quotes, and **intentionally omits** provisional and NLI labels. Two unfilled reviewer templates are bound to a SHA-256 packet; separate completed files can be validated and compared for disagreement and Cohen's kappa. Validation cannot certify human identity or independent participation, and the comparison never silently generates an adjudicated gold dataset. CI may archive the **empty materials only**; no private reviewer data belongs in the public API or repo.
+
 ## Trust and failure boundaries
 
 - Corpus data is synthetic, but still treated as untrusted instructions.
