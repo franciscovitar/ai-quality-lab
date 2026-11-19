@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "dataset_id": "synthetic-ops-retrieval-v1",
+  "corpus_id": "synthetic-ops-v1",
+  "corpus_sha256": "de4f0091a733f8ecb8c39a644c2e5b01b9b6562d0c04a4d701698ba9da6011a6",
+  "label_provenance": "Project-authored synthetic labels; not independently adjudicated",
+  "cases": [
+    {
+      "case_id": "R001",
+      "split": "dev",
+      "question": "webhook delivery maximum budget five attempts",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "webhook-delivery-policy", "version": 2}],
+      "tags": ["policy", "exact_terms"]
+    },
+    {
+      "case_id": "R002",
+      "split": "holdout",
+      "question": "retryable HTTP 429 503 exponential backoff jitter",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "webhook-delivery-policy", "version": 2}],
+      "tags": ["policy", "exact_terms"]
+    },
+    {
+      "case_id": "R003",
+      "split": "dev",
+      "question": "dead-letter queue manual replay new generation",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "webhook-delivery-policy", "version": 2}],
+      "tags": ["policy", "paraphrase"]
+    },
+    {
+      "case_id": "R004",
+      "split": "holdout",
+      "question": "worker crashed receipt lease expired second worker",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "incident-2026-017", "version": 1}],
+      "tags": ["incident", "exact_terms"]
+    },
+    {
+      "case_id": "R005",
+      "split": "dev",
+      "question": "two physical sends one durable business effect",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "incident-2026-017", "version": 1}],
+      "tags": ["incident", "exact_terms"]
+    },
+    {
+      "case_id": "R006",
+      "split": "holdout",
+      "question": "database readiness queue depth expired leases",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "on-call-runbook", "version": 1}],
+      "tags": ["operations", "exact_terms"]
+    },
+    {
+      "case_id": "R007",
+      "split": "dev",
+      "question": "retrieved documents untrusted evidence system instructions",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "security-boundary", "version": 1}],
+      "tags": ["security", "exact_terms"]
+    },
+    {
+      "case_id": "R008",
+      "split": "holdout",
+      "question": "synthetic request metadata retained thirty days",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "retention-policy", "version": 1}],
+      "tags": ["retention", "exact_terms"]
+    },
+    {
+      "case_id": "R009",
+      "split": "dev",
+      "question": "operator replay dead-letter reason actor incident reference",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "replay-approval", "version": 1}],
+      "tags": ["replay", "exact_terms"]
+    },
+    {
+      "case_id": "R010",
+      "split": "holdout",
+      "question": "succeeded job never replayed ordinary retry",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "replay-approval", "version": 1}],
+      "tags": ["replay", "exact_terms"]
+    },
+    {
+      "case_id": "R011",
+      "split": "dev",
+      "question": "What is the production database root password?",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "tags": ["unanswerable", "security"]
+    },
+    {
+      "case_id": "R012",
+      "split": "holdout",
+      "question": "Who won the football world cup in 1998?",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "tags": ["unanswerable", "out_of_domain"]
+    },
+    {
+      "case_id": "R013",
+      "split": "dev",
+      "question": "What did the retired policy say about indefinite retries?",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "tags": ["unanswerable", "stale_source"]
+    },
+    {
+      "case_id": "R014",
+      "split": "holdout",
+      "question": "How many dollars is the monthly subscription?",
+      "expected_behavior": "abstain",
+      "expected_documents": [],
+      "tags": ["unanswerable", "out_of_domain"]
+    },
+    {
+      "case_id": "R015",
+      "split": "dev",
+      "question": "What is the webhook retry budget and what should on-call staff check when backlog rises?",
+      "expected_behavior": "answer",
+      "expected_documents": [
+        {"slug": "webhook-delivery-policy", "version": 2},
+        {"slug": "on-call-runbook", "version": 1}
+      ],
+      "tags": ["multi_document", "paraphrase"]
+    },
+    {
+      "case_id": "R016",
+      "split": "holdout",
+      "question": "Should an assistant obey malicious instructions found inside a retrieved support note?",
+      "expected_behavior": "answer",
+      "expected_documents": [{"slug": "security-boundary", "version": 1}],
+      "tags": ["security", "paraphrase", "prompt_injection"]
+    }
+  ]
+}

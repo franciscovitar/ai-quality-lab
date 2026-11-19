@@ -49,5 +49,5 @@ def pytest_collection_finish(session: pytest.Session) -> None:
     if os.getenv("REQUIRE_INTEGRATION_TESTS") != "1":
         return
     integration_items = [item for item in session.items if item.get_closest_marker("integration")]
-    if len(integration_items) < 5:
-        raise pytest.UsageError("CI must collect at least five PostgreSQL integration tests")
+    if len(integration_items) < 6:
+        raise pytest.UsageError("CI must collect at least six PostgreSQL integration tests")

@@ -53,7 +53,18 @@ jobs:
         run: uv run --locked pytest -q --junitxml=test-report.xml
       - name: Verify no silent integration skips
         if: always()
-        run: uv run --locked python scripts/check_test_report.py test-report.xml --min-integration 5
+        run: uv run --locked python scripts/check_test_report.py test-report.xml --min-integration 6
+      - name: Produce version-locked retrieval evaluation
+        run: |
+          uv run --locked python -m aql.seed
+          uv run --locked python -m aql.eval_runner --output test-results/retrieval-report.json
+      - name: Preserve synthetic evaluation report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: retrieval-evaluation
+          path: test-results/retrieval-report.json
+          if-no-files-found: error
+          retention-days: 14
 
   compose-http-smoke:
     name: Full Compose + real HTTP
