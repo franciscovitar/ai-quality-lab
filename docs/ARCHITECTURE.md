@@ -34,9 +34,11 @@ A distinct [evidence-level evaluator](EVIDENCE_PROTOCOL.md) checks labeled **exa
 - `/health` is independent of `/ready` so a broken DB does not disguise process liveness.
 - Seed only inserts; a changed existing document/chunk produces an explicit conflict and transaction rollback.
 - Test DB is restricted by name and host; integration fixtures roll back inserted rows.
-- Vector similarity and answer citations require their **own** tests before we can claim either works.
+- Exact vector retrieval and **structured source-citation integrity** have separate tests; **generated-answer entailment and citation faithfulness do not**.
 
 ## Next checkpoint
 
 The initial 16-case lexical evaluation is pinned for per-case regression checks. The version-pinned ONNX adapter, exact cosine search and chunk-level RRF comparator were measured on PostgreSQL 17 in CI: semantic/hybrid recovered two lexical misses but retrieved neighbors on every unanswerable case. A preliminary top-1 cosine gate was then calibrated only on two `dev` negatives and evaluated on untouched holdout cases (see the [semantic experiment](SEMANTIC_EXPERIMENT.md)). It accepted all 12 labeled positives and rejected all four negatives **on this small synthetic set**, but no answer correctness or calibration guarantee follows. The post-hoc 12-case near-miss challenge retained all six positives but **accepted all six unanswerable questions**. The positives and negatives have overlapping cosine scores, so retuning a single scalar cutoff cannot perfectly separate them. This failed research policy is not enforced in the API. Before any cited generation, the unanswered questions are independently reviewed evidence-span entailment, hard negative review, and actual answer-level abstention.
+
+The [evidence-span CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515) then measured **8/8 labeled source spans retrieved by semantic search** (0/8 by FTS on the paraphrased challenge), while the semantic candidate still returned chunks for **all six unanswerable near misses**. That is why the next subsystem must evaluate whether *the claim follows from the retrieved spans*, rather than merely validating that a similar document or a matching quotation exists. All eight annotations remain project-authored and unreviewed by an independent judge.
 

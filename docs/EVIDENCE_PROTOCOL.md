@@ -42,6 +42,18 @@ uv run --locked --extra semantic python -m aql.semantic_runner --download-model
 
 The runner retains separate JSON artifacts named `stress_spans_lexical.json`, `stress_spans_semantic.json` and `stress_spans_gated.json` plus a `comparison.json` summary. Each report includes the evidence dataset hash, strategy, top-k chunk budget, per-case covered/required spans, full-coverage boolean, and negative no-hit proxy. No cloud embedding API, paid LLM or generated answer is involved. Do not run it on a non-disposable database.
 
+### Observed checkpoint, not a production threshold
+
+[GitHub Actions #44574024515](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515), commit `adae4ecc513ed946efd3a9e122e2b4f09f6a55e3`, executed the pinned CPU ONNX model and PostgreSQL 17, **74 tests (66 unit + 8 integration, zero omitted)**, and all three jobs passed. The uploaded comparison has evidence dataset SHA-256 `5a0d31e9bdc60380cad373364af532b10cb9638b1b4f680064fa83e6863d7795`.
+
+| Same 12 challenge questions, top-5 **chunks** | FTS | Exact semantic | Score-gated semantic |
+|---|---:|---:|---:|
+| Exact labeled spans present | **0/8** | **8/8** | **8/8** |
+| Answerable questions with *all* spans present | **0/6** | **6/6** | **6/6** |
+| Unanswerable questions returning no chunks | **6/6** | **0/6** | **0/6** |
+
+Both multi-span examples (`R102`, `R105`) had all their annotated passages recovered by the semantic candidate. The FTS zeros are specific to the deliberately paraphrased challenge queries and strict lexical search, **not** a statement that FTS always fails on the 16 original questions. The score gate uses only the original two dev-negative cases to determine its cutoff, and **still accepts all six near-miss negatives**. This reinforces why *present supporting chunks* and *correct decision to answer* must be separately evaluated. These results are on post-hoc authored labels, not independently reviewed judgments.
+
 ## What would justify the next step
 
 1. Independent review of reference answers **and** supporting quotes, ideally with disagreement/adjudication records.

@@ -2,7 +2,7 @@
 
 **Engineering a reliable retrieval system is more than getting an LLM to answer a prompt.** AI Quality Lab is a portfolio project for measurable, testable RAG systems: a versioned synthetic corpus, reproducible retrieval experiments, evidence-backed answers, and automated quality gates.
 
-> **Current state — checkpoint 3 retrieval comparison verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, version-locked goldens and a pinned CPU ONNX embedding model have been exercised on a GitHub runner. **There are no LLM-generated answers, evidence-backed citations or production accuracy claims yet.** See [roadmap](#roadmap).
+> **Current state — retrieval plus experimental source-integrity checks verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, version-locked goldens, a pinned CPU ONNX model and exact evidence-span coverage have been exercised on a GitHub runner. **There are no LLM-generated answers, claim-level entailment grades or production accuracy claims yet.** See [roadmap](#roadmap).
 
 ## Why this exists
 
@@ -19,7 +19,7 @@ The sample corpus is wholly synthetic. It describes fictional webhook operations
 - **Evidence annotations:** eight exact source spans for six challenge positives, six explicit abstention labels and a strict structured citation-integrity evaluator. This verifies quote provenance and required-span coverage, **not free-form LLM entailment**.
 - **Semantic experiment:** optional, commit-pinned local ONNX embeddings with pgvector exact cosine and RRF, compared against the same goldens; no paid model API.
 - **Testing:** pure unit tests plus PostgreSQL integration tests; CI fails on missing/skipped DB coverage.
-- **Future:** embeddings, RAG answers with citations/abstention, eval harness, comparison dashboard in Next.js.
+- **Future:** independently reviewed claim-level entailment and abstention, bounded RAG answers with citations, model-output eval harness, comparison dashboard in Next.js.
 
 See [Architecture](docs/ARCHITECTURE.md), [Dataset card](docs/DATASET_CARD.md), [Semantic experiment](docs/SEMANTIC_EXPERIMENT.md), [Evidence protocol](docs/EVIDENCE_PROTOCOL.md) and [Decisions](docs/DECISIONS.md) for details and limits.
 
@@ -125,6 +125,8 @@ The [score-gate CI run #44566570399](https://github.com/franciscovitar/ai-qualit
 
 The separate [evidence protocol](docs/EVIDENCE_PROTOCOL.md) adds eight project-authored answer-bearing quotes across the six challenge positives. Each quote is anchored to a source version and exact character offsets, and the loader verifies it against the hash-locked corpus and the stable chunk ID. The experimental runner now reports **exact span coverage** separately from document recall for lexical, semantic and score-gated retrieval. A structured decision/citation grader rejects fake, stale, unretrieved or irrelevant quotes and flags missing required spans. These are **deterministic source-integrity checks**, not an automatic judge of a generated claim's meaning, confidence or faithfulness. The current HTTP API remains lexical-only, with no answer generator.
 
+**Measured in [Actions #44574024515](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515), commit `adae4ecc513ed946efd3a9e122e2b4f09f6a55e3`:** all three jobs passed with **74 tests (66 unit, 8 PostgreSQL integration), 0 skipped** and real HTTP Compose. On the 12-case challenge, FTS retrieved **0/8** labeled supporting spans, while exact semantic and score-gated retrieval found **8/8**, including both required passages for the two multi-fact cases. **But neither semantic strategy returned zero hits on any of the six unanswerable questions (0/6)**; FTS returned no hits on 6/6. This is a small, purpose-built dataset: strong evidence retrieval and failed rejection coexist. The per-case reports and dataset hash are stored in the run's `semantic-retrieval-experiment` artifact. No generated answer, entailment or citation faithfulness was tested.
+
 ## Current endpoints
 
 | Method | Path | Behavior |
@@ -154,6 +156,8 @@ The [checkpoint 3 CI run](https://github.com/franciscovitar/ai-quality-lab/actio
 The [checkpoint 4 score-gate run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44566570399) on commit `85fb40bee432464a30d3192ad19ac39fa568ddb5` passed **54 tests (46 unit, 8 integration; 0 skipped)**, the same Compose smoke and the real-model retrieval/gate experiment. Only two dev-negative questions were used to determine the threshold, so perfect performance on this tiny synthetic sample is **not** a calibrated generalization or answer-faithfulness claim.
 
 The [near-miss challenge run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44567666413) on commit `5eaea02184a75c9fb07d4893597dcf68f5c699df` passed **56 tests (48 unit, 8 integration; 0 skipped)** and all three jobs; its **negative finding** is that a score-only gate accepted all six newly authored unanswerable near misses. That failed *experimental policy metric* is reported as such rather than concealed by a green test badge.
+
+The [evidence-span CI run](https://github.com/franciscovitar/ai-quality-lab/actions/runs/44574024515) on commit `adae4ecc513ed946efd3a9e122e2b4f09f6a55e3` passed **74 tests (66 unit, 8 integration; 0 skipped)** and all three jobs. Exact semantic retrieval covered all **8/8** project-labeled supporting spans in six answerable challenges, while the same method still retrieved candidates for **6/6 unanswerable near misses**. This is a span-coverage result, not LLM-answer correctness or generalization.
 
 ## References
 
