@@ -34,7 +34,7 @@ def test_seed_is_idempotent(database: Connection) -> None:
 @pytest.mark.integration
 def test_search_finds_current_policy_not_retired_version(database: Connection) -> None:
     seed_corpus(database, CORPUS)
-    hits = search_lexical(database, "five attempts retry budget", top_k=10)
+    hits = search_lexical(database, "webhook delivery maximum budget five attempts", top_k=10)
     policy_hits = [hit for hit in hits if hit.document_slug == "webhook-delivery-policy"]
     assert policy_hits
     assert all(hit.document_version == 2 for hit in policy_hits)
