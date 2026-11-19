@@ -12,10 +12,13 @@ from aql.evidence_gate import calibrate_dev_negatives, gated_hits
 from aql.retrieval import fuse_rrf, search_lexical, search_semantic
 from aql.vector_index import assert_index_complete, index_embeddings
 
+DEFAULT_STRESS_DATASET = Path("data/evals/retrieval_stress_v1.json")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
+    parser.add_argument("--stress-dataset", type=Path, default=DEFAULT_STRESS_DATASET)
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--output-dir", type=Path, default=Path("test-results/semantic"))
@@ -27,8 +30,14 @@ def main() -> None:
     args = parser.parse_args()
 
     goldens = load_dataset(args.dataset, args.corpus)
+    stress_goldens = load_dataset(args.stress_dataset, args.corpus)
+    overlap = {case.question for case in goldens.data.cases} & {
+        case.question for case in stress_goldens.data.cases
+    }
+    if overlap:
+        parser.error("Stress questions must be distinct from the calibration dataset")
     embedder = PinnedFastEmbed(allow_download=args.download_model)
-    questions = {case.question for case in goldens.data.cases}
+    questions = {case.question for case in (*goldens.data.cases, *stress_goldens.data.cases)}
     vectors = dict(
         zip(
             sorted(questions),
@@ -50,6 +59,12 @@ def main() -> None:
             case.question: search_semantic(connection, vectors[case.question], MODEL_KEY, 10)
             for case in goldens.data.cases
         }
+        raw_stress_semantic = {
+            case.question: search_semantic(connection, vectors[case.question], MODEL_KEY, 10)
+            for case in stress_goldens.data.cases
+        }
+        # Calibrate ONLY against the original dev negatives. Challenge-set labels
+        # never participate, including cases marked dev in the stress file.
         threshold = calibrate_dev_negatives(goldens.data, raw_semantic)
 
         def lexical(q: str, k: int):
@@ -63,6 +78,12 @@ def main() -> None:
 
         def semantic_gated(q: str, k: int):
             return gated_hits(raw_semantic[q], threshold=threshold.value, top_k=k)
+
+        def stress_semantic(q: str, k: int):
+            return raw_stress_semantic[q][:k]
+
+        def stress_gated(q: str, k: int):
+            return gated_hits(raw_stress_semantic[q], threshold=threshold.value, top_k=k)
 
         reports = {
             "lexical": evaluate_retrieval(goldens, lexical, top_k=args.top_k),
@@ -78,6 +99,18 @@ def main() -> None:
                 top_k=args.top_k,
                 strategy=f"dev-negative-top1-gate:{MODEL_KEY}",
             ),
+            "stress_semantic": evaluate_retrieval(
+                stress_goldens,
+                stress_semantic,
+                top_k=args.top_k,
+                strategy=f"challenge-exact-cosine:{MODEL_KEY}",
+            ),
+            "stress_gated": evaluate_retrieval(
+                stress_goldens,
+                stress_gated,
+                top_k=args.top_k,
+                strategy=f"frozen-original-dev-gate:{MODEL_KEY}",
+            ),
         }
 
     # Preserve the proven lexical floor: the semantic run must not change FTS.
@@ -92,6 +125,7 @@ def main() -> None:
 
     comparison = {
         "dataset_sha256": goldens.dataset_sha256,
+        "stress_dataset_sha256": stress_goldens.dataset_sha256,
         "model_key": MODEL_KEY,
         "top_k_chunks": args.top_k,
         "index_stats": {
@@ -105,6 +139,7 @@ def main() -> None:
             "objective": threshold.objective,
             "calibration_split": "dev",
             "holdout_used_for_calibration": False,
+            "stress_labels_used_for_calibration": False,
             "note": "Top-1 cosine score proxy only; no evidence entailment or LLM abstention test",
         },
         "metrics": {name: report["summary"] for name, report in reports.items()},
@@ -119,6 +154,17 @@ def main() -> None:
             }
             for case in goldens.data.cases
         },
+        "stress_top1_semantic_scores": {
+            case.case_id: {
+                "split": case.split,
+                "behavior": case.expected_behavior,
+                "cosine": raw_stress_semantic[case.question][0].score
+                if raw_stress_semantic[case.question]
+                else None,
+                "accepted": bool(stress_gated(case.question, args.top_k)),
+            }
+            for case in stress_goldens.data.cases
+        },
         "per_case_recall": {
             row["case_id"]: {
                 name: next(
@@ -126,9 +172,20 @@ def main() -> None:
                     for item in reports[name]["cases"]
                     if item["case_id"] == row["case_id"]
                 )
-                for name in reports
+                for name in ("lexical", "semantic", "hybrid", "semantic_gated")
             }
             for row in reports["lexical"]["cases"]
+        },
+        "stress_per_case_recall": {
+            row["case_id"]: {
+                name: next(
+                    item["recall_at_k"]
+                    for item in reports[name]["cases"]
+                    if item["case_id"] == row["case_id"]
+                )
+                for name in ("stress_semantic", "stress_gated")
+            }
+            for row in reports["stress_semantic"]["cases"]
         },
     }
     (args.output_dir / "comparison.json").write_text(report_json(comparison), encoding="utf-8")
