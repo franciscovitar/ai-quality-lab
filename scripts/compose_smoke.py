@@ -59,10 +59,28 @@ def main() -> None:
     )
     assert all(hit["chunk_id"] and hit["content"] for hit in hits)
 
+    demo = get_json("/v1/demo/examples")
+    assert demo["mode"] == "frozen_synthetic_research_demo"
+    assert demo["independent_reviewers"] == 0
+    assert [case["id"] for case in demo["examples"]] == ["R101", "R106", "R108", "R105", "R110"]
+    contradiction = demo["examples"][1]
+    assert contradiction["author_claim_counts"]["contradicted"] == 1
+    assert "3 days" in contradiction["model_answer"]
+    assert any("thirty days" in passage["quote"] for passage in contradiction["source_passages"])
+    for path, marker in [
+        ("/demo", b'id="explorer-layout"'),
+        ("/demo/assets/demo.js", b"selectCase"),
+        ("/demo/assets/demo.css", b".explorer-layout"),
+    ]:
+        with urlopen(f"{BASE_URL}{path}", timeout=3) as response:
+            assert response.status == 200
+            assert marker in response.read()
+
     print(
         "Compose HTTP smoke passed: "
         f"health=200 ready=200 current_documents={len(documents)} "
-        f"search_hits={len(hits)} current_policy=v2"
+        f"search_hits={len(hits)} current_policy=v2 "
+        f"portfolio_demo={len(demo['examples'])} frozen_examples"
     )
 
 

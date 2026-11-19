@@ -2,6 +2,15 @@
 
 **Engineering a reliable retrieval system is more than getting an LLM to answer a prompt.** AI Quality Lab is a portfolio project for measurable, testable RAG systems: a versioned synthetic corpus, reproducible retrieval experiments, evidence-backed answers, and automated quality gates.
 
+### Start here: understand the result in two minutes
+
+**Open the local visual demo at [http://localhost:8001/demo](http://localhost:8001/demo)** after running `docker compose up --build --wait`. Pick one of five frozen, **real model responses** and compare what the model wrote with the exact source passages it received. Start with **R106**: it confidently says *3 days* when the sole provided document says *thirty days*. Other cases show invented citations, an answer that misses the question, unsupported SQL and a supported response.
+
+The browser makes **no live model calls**; the source files and annotations are synthetic, version-locked project artifacts. Citation syntax and abstention checks are automatic; factual-support labels are **provisional judgments by the project author**, with zero independent reviewers. Green CI means the implementation and reproducibility checks passed, **not** that the model is safe.
+
+- **[Two-minute engineering case study](docs/CASE_STUDY.md):** the problem, one concrete failure, trade-offs and observed evidence.
+- **[Project direction (demo-first)](docs/PORTFOLIO_FOCUS.md) · [decision issue #2](https://github.com/franciscovitar/ai-quality-lab/issues/2):** what we prioritize next and what is paused.
+
 > **Current state — retrieval, citation integrity, experimental NLI and an isolated real generation run verified in CI.** PostgreSQL/FTS, Docker Compose/HTTP, pinned CPU ONNX embeddings and claim-to-evidence inference have been exercised on GitHub runners. The pre-annotated answer evaluator remains separate from a **12-question, actual small-model generation experiment**. That run is now frozen with **provisional author claim annotations**; the generator failed all six strict abstention cases. **There is no independent factuality validation, deployed RAG answer endpoint or production accuracy claim.** See [the real-generation experiment](docs/GENERATION_EXPERIMENT.md), [provisional claim review](docs/GENERATED_CLAIM_REVIEW.md) and [roadmap](#roadmap).
 
 ## Why this exists
@@ -35,6 +44,7 @@ Prerequisites: Docker Desktop/Engine with Compose and capacity to start PostgreS
 
 ```bash
 docker compose up --build --wait
+# Open http://localhost:8001/demo in your browser for the five-case walkthrough.
 curl http://localhost:8001/health
 curl http://localhost:8001/ready
 curl http://localhost:8001/v1/corpus/versions
@@ -45,7 +55,7 @@ curl -X POST http://localhost:8001/v1/retrieval/search \
 
 `compose.yaml` starts PostgreSQL, applies `0001_corpus`, verifies the synthetic seed, and then starts the API. PostgreSQL is **not** exposed to the host; the API binds only to `127.0.0.1:8001`. All credentials are obvious, disposable placeholders and must never be reused outside an isolated machine.
 
-The CI workflow also runs `scripts/compose_smoke.py` against that same full stack, checking migrated readiness, all six current documents and a current-policy search over real HTTP. Inspect its run before considering Compose verified.
+The CI workflow runs `scripts/compose_smoke.py` against that same full stack, checking migrated readiness, all six current documents, a current-policy search, and **the frozen demo API, HTML, JS and CSS over real HTTP**. Inspect the completed run before considering the new demo smoke verified.
 
 To stop without deleting the named demonstration volume:
 
@@ -175,6 +185,8 @@ The [human review protocol](docs/HUMAN_REVIEW_PROTOCOL.md) now generates an **ex
 | `GET` | `/ready` | 200 only with reachable, migrated PostgreSQL + pgvector |
 | `GET` | `/v1/corpus/versions` | Current synthetic documents |
 | `POST` | `/v1/retrieval/search` | Parameterized FTS search, top_k 1–10, current versions only |
+| `GET` | `/demo` | Static, recruiter-friendly Spanish demo, no database or model required |
+| `GET` | `/v1/demo/examples` | Five SHA-bound original model outputs with exact source passages |
 
 This is an intentionally **non-agentic** first checkpoint. A search result is not an AI-generated answer. `score` is PostgreSQL FTS rank, **not** model confidence or grounding quality.
 
@@ -184,8 +196,8 @@ This is an intentionally **non-agentic** first checkpoint. A search result is no
 2. **Dataset:** version-locked goldens, split/coverage audit, deterministic retrieval report and pinned lexical regression baseline. **Verified with PostgreSQL 17 in CI.**
 3. **Semantic and hybrid retrieval:** pinned ONNX adapter, exact pgvector search and rank fusion; **measured with a real CPU model in CI**.
 4. **Evidence and generation:** exact evidence spans, pre-annotated composition and an **isolated real CPU generator experiment** now exist. The score gate failed near-miss cases, the experimental NLI judge falsely approved a contradiction, and the tiny generator failed all six strict abstention checks. None is deployable as an answerability classifier.
-5. **Answer evals:** pre-annotated compositions, real generation, a provisional author claim review, NLI judgments on actual outputs and the **label-hidden reviewer handoff** are implemented. Next: **real independent human submissions and adjudication**, independent claim extraction for omission detection, a sealed set and quantitative reliability/regression reporting.
-6. **Dashboard and case study:** compare failures, latency/tokens/cost, dockerized end-to-end demo.
+5. **Answer evals:** pre-annotated compositions, real generation, a provisional author claim review, NLI judgments on actual outputs and a label-hidden reviewer handoff are implemented. **Additional scoring layers and recruitment of independent reviewers are paused**, not represented as complete.
+6. **Current portfolio priority:** five-case visual walkthrough, one-command Compose and the concise [case study](docs/CASE_STUDY.md). The [persistent direction](docs/PORTFOLIO_FOCUS.md) takes precedence over an older experimental roadmap. A larger dashboard and deployment are deliberately out of scope.
 
 No production deployment, real user credentials, private data or paid LLM usage is implied by this roadmap. A public deployment would require separate authentication, rate limiting, privacy and security review.
 

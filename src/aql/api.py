@@ -1,16 +1,22 @@
 """Public, local-only HTTP surface for the first retrieval checkpoint."""
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from psycopg import Error as PsycopgError
 from pydantic import BaseModel, ConfigDict, Field
 
 from aql.database import DatabaseNotConfigured, is_ready, open_database
+from aql.portfolio_demo import load_portfolio_demo
 from aql.retrieval import SearchHit, search_lexical
 
 logger = logging.getLogger(__name__)
 app = FastAPI(title="AI Quality Lab", version="0.1.0")
+WEB_DIR = Path(__file__).resolve().parent / "web"
+app.mount("/demo/assets", StaticFiles(directory=WEB_DIR), name="demo-assets")
 
 
 class SearchRequest(BaseModel):
@@ -27,6 +33,22 @@ class SearchResponse(BaseModel):
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/demo", include_in_schema=False)
+def portfolio_demo_page() -> FileResponse:
+    """Static, local-first explainer; no generator, secret or database required."""
+    return FileResponse(WEB_DIR / "index.html", media_type="text/html")
+
+
+@app.get("/v1/demo/examples")
+def portfolio_demo_examples() -> dict:
+    """Existing SHA-bound experimental results, not an AI answer endpoint."""
+    try:
+        return load_portfolio_demo()
+    except (OSError, ValueError, KeyError) as exc:
+        logger.error("Frozen portfolio demo unavailable: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="demo_snapshot_unavailable") from None
 
 
 @app.get("/ready")
